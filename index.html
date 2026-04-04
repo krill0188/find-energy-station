@@ -655,28 +655,27 @@
   }
 
   function navNaver(name, dlat, dlng, addr) {
-    // 네이버: 주소를 목적지로 검색
     const q = addr || name;
-    // 모바일 앱
-    const appUrl = `nmap://search?query=${encodeURIComponent(q)}&appname=find-gas-station`;
-    // 웹
-    const webUrl = `https://map.naver.com/v5/search/${encodeURIComponent(q)}`;
-    tryAppOrWeb(appUrl, webUrl);
+    if(isMobile()) {
+      location.href = `nmap://search?query=${encodeURIComponent(q)}&appname=find-energy-station`;
+      setTimeout(() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`), 1500);
+    } else {
+      window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`);
+    }
   }
 
   function navTmap(name, dlat, dlng, addr) {
-    // 티맵: 주소로 검색
     const q = addr || name;
-    const appUrl = `tmap://search?name=${encodeURIComponent(q)}`;
-    const webUrl = `https://tmap.life/search?query=${encodeURIComponent(q)}`;
-    tryAppOrWeb(appUrl, webUrl);
+    if(isMobile()) {
+      location.href = `tmap://search?name=${encodeURIComponent(q)}`;
+      setTimeout(() => window.open(`https://tmap.life/search?query=${encodeURIComponent(q)}`), 1500);
+    } else {
+      window.open(`https://tmap.life/search?query=${encodeURIComponent(q)}`);
+    }
   }
 
-  function tryAppOrWeb(appUrl, webUrl) {
-    const w = window.open(appUrl);
-    setTimeout(() => {
-      try { if(!w || w.closed) window.open(webUrl); } catch(e) { window.open(webUrl); }
-    }, 1000);
+  function isMobile() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   }
 
   /* ── 공유 ── */
