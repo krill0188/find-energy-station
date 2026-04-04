@@ -225,6 +225,18 @@
     .aff-card-price { font-size:11px; color:var(--primary); font-weight:600; margin-top:2px; }
     .aff-card-from { font-size:10px; color:var(--text-muted); margin-top:2px; }
 
+    /* ── 인라인 제휴 카드 ── */
+    .aff-inline { display:flex; gap:10px; margin-bottom:14px; }
+    .aff-inline-card { flex:1; background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; text-decoration:none; color:var(--text); border:1.5px solid rgba(255,152,0,.3); transition:transform .15s; }
+    .aff-inline-card:active { transform:scale(.97); }
+    .aff-inline-top { padding:12px; display:flex; align-items:center; gap:10px; }
+    .aff-inline-emoji { font-size:28px; flex-shrink:0; }
+    .aff-inline-info { flex:1; }
+    .aff-inline-name { font-size:13px; font-weight:700; line-height:1.3; }
+    .aff-inline-from { font-size:10px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:4px; }
+    .aff-inline-from .aff-tag { background:var(--accent); color:#fff; padding:1px 6px; border-radius:8px; font-size:9px; font-weight:700; }
+    .aff-inline-btn { display:block; text-align:center; padding:8px; background:rgba(255,109,0,.06); color:var(--accent); font-size:11px; font-weight:700; border-top:1px solid var(--border); }
+
     /* ── 광고 슬롯 ── */
     .ad-slot { background:var(--card); border:1px dashed var(--border); border-radius:12px; margin:8px 12px; padding:16px; text-align:center; min-height:100px; display:flex; align-items:center; justify-content:center; }
     .ad-slot-text { font-size:11px; color:var(--text-muted); }
@@ -232,6 +244,16 @@
     /* ── 하단 안내 ── */
     .footer { text-align:center; padding:20px 16px 80px; font-size:11px; color:var(--text-muted); line-height:1.6; }
     .footer a { color:var(--primary); text-decoration:none; }
+
+    /* ── 위치 권한 안내 ── */
+    .loc-permission { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .loc-perm-box { background:var(--card); border-radius:20px; padding:28px 24px; max-width:340px; width:100%; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,.2); }
+    .loc-perm-icon { font-size:48px; margin-bottom:12px; }
+    .loc-perm-title { font-size:18px; font-weight:800; margin-bottom:6px; }
+    .loc-perm-desc { font-size:13px; color:var(--text-muted); line-height:1.6; margin-bottom:20px; }
+    .loc-perm-btn { background:var(--primary); color:#fff; border:none; border-radius:24px; padding:14px 32px; font-size:15px; font-weight:700; cursor:pointer; width:100%; }
+    .loc-perm-btn:active { opacity:.8; }
+    .loc-perm-skip { display:block; margin-top:12px; font-size:12px; color:var(--text-muted); background:none; border:none; cursor:pointer; }
 
     /* ── 설치 배너 ── */
     .install-banner { background:var(--card); border-top:1px solid var(--border); padding:12px 16px; display:flex; align-items:center; gap:12px; position:fixed; bottom:0; left:0; right:0; z-index:100; box-shadow:0 -2px 10px rgba(0,0,0,.1); }
@@ -357,6 +379,20 @@
   오피넷 실시간 유가 데이터 기반<br>
   <a href="https://www.opinet.co.kr" target="_blank">한국석유공사 오피넷</a> · 가격은 실제와 다를 수 있습니다<br>
   <a href="privacy.html">개인정보처리방침</a>
+</div>
+
+<!-- 위치 권한 한글 안내 -->
+<div class="loc-permission" id="locPermission" style="display:none">
+  <div class="loc-perm-box">
+    <div class="loc-perm-icon">📍</div>
+    <div class="loc-perm-title">위치 정보가 필요합니다</div>
+    <div class="loc-perm-desc">
+      주변 주유소를 찾기 위해<br>현재 위치를 사용합니다.<br>
+      <span style="font-size:11px;color:#999">Location access is needed to find nearby gas stations.</span>
+    </div>
+    <button class="loc-perm-btn" onclick="allowLocation()">위치 허용하기</button>
+    <button class="loc-perm-skip" onclick="skipLocation()">나중에 하기 (검색으로 이용)</button>
+  </div>
 </div>
 
 <div class="install-banner" id="installBanner" style="display:none">
@@ -567,9 +603,9 @@
       return;
     }
 
-    el.innerHTML = gasData.map((g, i) => {
-      const hasCoord = g.lat && g.lng;
-      return `
+    let html = '';
+    gasData.forEach((g, i) => {
+      html += `
       <div class="gas-card ${g.isCheap?'cheap':'over-price'}" style="animation-delay:${i*.04}s">
         <div class="gas-card-body">
           <div class="gas-header">
@@ -596,7 +632,12 @@
           <button class="action-btn" onclick="shareStation('${escHtml(g.name)}',${g.price},'${escHtml(g.address)}')"><span class="aicon">📤</span>공유</button>
         </div>
       </div>`;
-    }).join('');
+      // 3개마다 제휴 상품 2개 삽입
+      if((i+1) % 3 === 0 && i < gasData.length - 1) {
+        html += getAffInsert(i);
+      }
+    });
+    el.innerHTML = html;
   }
 
   /* ── 전기차 충전소 검색 ── */
@@ -819,11 +860,34 @@
     document.getElementById('sourceBar').style.display = 'none';
 
     if(!navigator.geolocation) { showErr('GPS 미지원','이 브라우저는 위치를 지원하지 않습니다.'); return; }
+
+    // 이미 권한 있으면 바로 진행, 없으면 한글 안내 표시
+    navigator.permissions?.query({name:'geolocation'}).then(p => {
+      if(p.state === 'granted') requestLocation();
+      else if(p.state === 'denied') showErr('위치 차단됨', '브라우저 설정에서 위치 권한을 허용해 주세요.');
+      else document.getElementById('locPermission').style.display = 'flex';
+    }).catch(() => {
+      // permissions API 미지원 (iOS Safari 등) → 한글 안내 표시
+      if(!lat) document.getElementById('locPermission').style.display = 'flex';
+    });
+  }
+
+  function allowLocation() {
+    document.getElementById('locPermission').style.display = 'none';
+    requestLocation();
+  }
+
+  function skipLocation() {
+    document.getElementById('locPermission').style.display = 'none';
+    document.getElementById('skeletonArea').style.display = 'none';
+    setLocMode('search');
+  }
+
+  function requestLocation() {
     navigator.geolocation.getCurrentPosition(pos => {
       lat = pos.coords.latitude; lng = pos.coords.longitude;
       document.getElementById('locText').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
       document.getElementById('locText').className = 'loc-text active';
-      // 역지오코딩으로 위치명 업데이트
       reverseGeocode(lat, lng);
       fetchGas();
     }, err => {
@@ -880,6 +944,35 @@
       try { await navigator.share({title:'착한주유소 - '+name, text}); return; } catch(e){}
     }
     navigator.clipboard?.writeText(text).then(() => alert('📋 복사됨!'));
+  }
+
+  /* ── 리스트 사이 제휴 삽입 ── */
+  function getAffInsert(idx) {
+    const pair = Math.floor(idx / 3) % Math.floor(AFF_PRODUCTS.length / 2);
+    const p1 = AFF_PRODUCTS[(pair*2) % AFF_PRODUCTS.length];
+    const p2 = AFF_PRODUCTS[(pair*2+1) % AFF_PRODUCTS.length];
+    return `<div class="aff-inline">${affCard(p1)}${affCard(p2)}</div>`;
+  }
+
+  function affCard(p) {
+    let url;
+    if(p.type === 'coupang') {
+      const searchUrl = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.keyword)}&channel=user`;
+      url = `https://link.coupang.com/a/${COUPANG_AFF_ID}?url=${encodeURIComponent(searchUrl)}`;
+    } else {
+      url = `https://www.aliexpress.com/w/wholesale-${encodeURIComponent(p.keyword)}.html?aff_id=${ALI_AFF_ID}`;
+    }
+    return `
+    <a class="aff-inline-card" href="${url}" target="_blank" rel="noopener">
+      <div class="aff-inline-top">
+        <div class="aff-inline-emoji">${p.emoji}</div>
+        <div class="aff-inline-info">
+          <div class="aff-inline-name">${escHtml(p.name)}</div>
+          <div class="aff-inline-from"><span class="aff-tag">AD</span> ${p.from}</div>
+        </div>
+      </div>
+      <div class="aff-inline-btn">상품 보기 →</div>
+    </a>`;
   }
 
   /* ── 제휴 상품 (쿠팡/알리) ── */
