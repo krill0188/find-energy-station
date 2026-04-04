@@ -366,7 +366,7 @@
 
 <!-- 쿠팡 파트너스 배너 -->
 <div style="text-align:center;padding:12px">
-  <a href="https://link.coupang.com/a/eh8PUz" target="_blank" referrerpolicy="unsafe-url">
+  <a href="https://link.coupang.com/a/eh8PUz" target="_blank" rel="noopener" referrerpolicy="unsafe-url" onclick="window.open(this.href);return false;">
     <img src="https://ads-partners.coupang.com/banners/978069?subId=&traceId=V0-301-c1744fa69c93f626-I978069&w=320&h=100" alt="쿠팡 자동차용품" style="max-width:100%;border-radius:12px;">
   </a>
 </div>
@@ -976,7 +976,7 @@
       url = `https://ko.aliexpress.com/w/wholesale-${slug}.html`;
     }
     return `
-    <a class="aff-inline-card" href="${url}" target="_blank" rel="noopener">
+    <a class="aff-inline-card" href="${url}" target="_blank" rel="noopener" referrerpolicy="unsafe-url" onclick="window.open(this.href);return false;">
       <div class="aff-inline-top">
         <div class="aff-inline-emoji">${p.emoji}</div>
         <div class="aff-inline-info">
