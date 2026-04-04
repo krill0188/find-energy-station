@@ -2,15 +2,46 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!-- PWA / 홈화면 추가 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="착한주유소">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="착한주유소">
+
+  <!-- 테마 색상: 크롬/엣지/삼성/오페라 -->
   <meta name="theme-color" content="#1B5E20">
+  <meta name="msapplication-navbutton-color" content="#1B5E20">
+  <meta name="msapplication-TileColor" content="#1B5E20">
+  <meta name="msapplication-TileImage" content="icon-192.png">
+
+  <!-- SEO / 소셜 미리보기 -->
+  <meta name="description" content="내 주변 가장 저렴한 주유소를 찾아보세요. 오피넷 실시간 유가, 길안내 연동.">
+  <meta property="og:title" content="착한주유소">
+  <meta property="og:description" content="내 주변 가장 저렴한 주유소 찾기 - 실시간 유가 비교">
+  <meta property="og:image" content="icon-512.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://krill0188.github.io/find-energy-station/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="착한주유소">
+  <meta name="twitter:description" content="내 주변 가장 저렴한 주유소 찾기">
+  <meta name="twitter:image" content="icon-512.png">
+
   <title>착한주유소</title>
+
+  <!-- 파비콘: 모든 브라우저 -->
   <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
   <link rel="shortcut icon" href="favicon.ico">
+
+  <!-- iOS -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+  <link rel="apple-touch-startup-image" href="icon-512.png">
+
+  <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
@@ -183,6 +214,14 @@
     .footer { text-align:center; padding:20px 16px; font-size:11px; color:var(--text-muted); line-height:1.6; }
     .footer a { color:var(--primary); text-decoration:none; }
 
+    /* ── 설치 배너 ── */
+    .install-banner { background:var(--card); border-top:1px solid var(--border); padding:12px 16px; display:flex; align-items:center; gap:12px; position:fixed; bottom:0; left:0; right:0; z-index:100; box-shadow:0 -2px 10px rgba(0,0,0,.1); }
+    .install-banner .ib-icon { font-size:28px; flex-shrink:0; }
+    .install-banner .ib-text { flex:1; font-size:13px; line-height:1.4; }
+    .install-banner .ib-text b { color:var(--primary); }
+    .install-banner .ib-close { background:none; border:none; font-size:20px; color:var(--text-muted); cursor:pointer; padding:4px; }
+    .install-banner .ib-btn { background:var(--primary); color:#fff; border:none; border-radius:16px; padding:8px 16px; font-size:12px; font-weight:700; cursor:pointer; flex-shrink:0; }
+
     /* ── 반응형: 태블릿 ── */
     @media (min-width:768px) {
       .header { padding:24px 24px; padding-top:calc(24px + env(safe-area-inset-top)); }
@@ -287,6 +326,13 @@
 <div class="footer">
   오피넷 실시간 유가 데이터 기반<br>
   <a href="https://www.opinet.co.kr" target="_blank">한국석유공사 오피넷</a> · 가격은 실제와 다를 수 있습니다
+</div>
+
+<div class="install-banner" id="installBanner" style="display:none">
+  <div class="ib-icon">⚡</div>
+  <div class="ib-text"><b>착한주유소</b>를 홈화면에 추가하면<br>앱처럼 바로 실행할 수 있어요</div>
+  <button class="ib-btn" id="installBtn" onclick="installApp()">설치</button>
+  <button class="ib-close" onclick="dismissInstall()">✕</button>
 </div>
 
 <script>
@@ -803,6 +849,50 @@
       try { await navigator.share({title:'착한주유소 - '+name, text}); return; } catch(e){}
     }
     navigator.clipboard?.writeText(text).then(() => alert('📋 복사됨!'));
+  }
+
+  /* ── PWA 설치 프롬프트 ── */
+  let deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if(!localStorage.getItem('installDismissed')) {
+      document.getElementById('installBanner').style.display = 'flex';
+    }
+  });
+
+  function installApp() {
+    if(deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(r => {
+        document.getElementById('installBanner').style.display = 'none';
+        deferredPrompt = null;
+      });
+    }
+  }
+
+  function dismissInstall() {
+    document.getElementById('installBanner').style.display = 'none';
+    localStorage.setItem('installDismissed', '1');
+  }
+
+  // iOS Safari 안내
+  window.addEventListener('load', () => {
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if(isIOS && !isStandalone && !localStorage.getItem('installDismissed')) {
+      const banner = document.getElementById('installBanner');
+      const btn = document.getElementById('installBtn');
+      btn.textContent = '방법 보기';
+      btn.onclick = () => { alert('Safari 하단 공유 버튼(□↑) → "홈 화면에 추가"를 눌러주세요'); };
+      banner.style.display = 'flex';
+    }
+  });
+
+  /* ── 서비스 워커 등록 ── */
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
   window.onload = init;

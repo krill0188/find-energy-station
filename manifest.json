@@ -1,24 +1,52 @@
 {
   "name": "착한주유소",
   "short_name": "착한주유소",
-  "description": "내 주변 가장 저렴한 주유소 찾기",
+  "description": "내 주변 가장 저렴한 주유소 찾기 - 실시간 유가 비교, 길안내 연동",
   "start_url": "./index.html",
+  "scope": "./",
+  "id": "find-energy-station",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#F1F8E9",
   "theme_color": "#1B5E20",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "lang": "ko",
+  "dir": "ltr",
+  "categories": ["utilities", "navigation"],
   "icons": [
+    {
+      "src": "icon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
