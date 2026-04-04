@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1B5E20">
+  <title>착한주유소</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --primary: #2E7D32;
+      --primary-light: #4CAF50;
+      --primary-dark: #1B5E20;
+      --accent: #FF6D00;
+      --bg: #F1F8E9;
+      --card: #FFFFFF;
+      --text: #1A1A1A;
+      --text-muted: #6C757D;
+      --border: #E0E0E0;
+      --shadow: 0 2px 16px rgba(0,0,0,0.08);
+      --radius: 18px;
+      --cheap: #1B5E20;
+      --over: #D32F2F;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#121212; --card:#1E1E1E; --text:#E8F5E9; --text-muted:#81C784;
+        --border:#333; --shadow:0 2px 16px rgba(0,0,0,.5);
+        --primary:#4CAF50; --primary-light:#66BB6A; --primary-dark:#2E7D32;
+      }
+    }
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
+
+    /* ── 헤더 ── */
+    .header {
+      background:linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color:#fff; padding:20px 16px; padding-top:calc(20px + env(safe-area-inset-top));
+      position:relative; overflow:hidden;
+    }
+    .header::before {
+      content:''; position:absolute; top:-30px; right:-20px; width:120px; height:120px;
+      background:rgba(255,255,255,.08); border-radius:50%;
+    }
+    .header::after {
+      content:''; position:absolute; bottom:-40px; right:40px; width:80px; height:80px;
+      background:rgba(255,255,255,.05); border-radius:50%;
+    }
+    .header-top { display:flex; align-items:center; gap:10px; position:relative; z-index:1; }
+    .header-logo { font-size:32px; }
+    .header-text h1 { font-size:22px; font-weight:800; letter-spacing:-0.5px; }
+    .header-text .tagline { font-size:12px; opacity:.85; margin-top:2px; font-weight:500; }
+
+    /* ── 위치 바 ── */
+    .loc-bar { background:var(--card); border-bottom:1px solid var(--border); padding:10px 16px; display:flex; align-items:center; gap:8px; }
+    .loc-text { font-size:13px; color:var(--text-muted); flex:1; }
+    .loc-text.active { color:var(--text); font-weight:500; }
+    .loc-mode-toggle { display:flex; gap:0; background:var(--bg); border-radius:10px; overflow:hidden; flex-shrink:0; }
+    .loc-mode-btn { padding:6px 12px; font-size:11px; font-weight:600; border:none; cursor:pointer; background:transparent; color:var(--text-muted); }
+    .loc-mode-btn.active { background:var(--primary); color:#fff; }
+    .refresh-btn { background:var(--primary); color:#fff; border:none; border-radius:20px; padding:6px 14px; font-size:12px; font-weight:600; cursor:pointer; flex-shrink:0; }
+    .refresh-btn:active { opacity:.8; }
+
+    /* ── 검색 ── */
+    .search-bar { background:var(--card); border-bottom:1px solid var(--border); padding:8px 16px; display:none; gap:8px; }
+    .search-input { flex:1; padding:10px 14px; border:1.5px solid var(--border); border-radius:12px; font-size:14px; background:var(--bg); color:var(--text); outline:none; }
+    .search-input:focus { border-color:var(--primary); }
+    .search-input::placeholder { color:var(--text-muted); }
+    .search-btn { background:var(--primary); color:#fff; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:600; cursor:pointer; }
+    .search-suggestions { background:var(--card); border-bottom:1px solid var(--border); padding:0 16px; max-height:200px; overflow-y:auto; display:none; }
+    .search-suggestions.open { display:block; }
+    .suggestion-item { padding:10px 8px; border-bottom:1px solid var(--border); font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; }
+    .suggestion-item:last-child { border-bottom:none; }
+    .suggestion-item:active { background:rgba(76,175,80,.06); }
+    .suggestion-name { font-weight:600; }
+    .suggestion-addr { font-size:12px; color:var(--text-muted); }
+
+    /* ── 소스 바 ── */
+    .source-bar { background:var(--card); border-bottom:1px solid var(--border); padding:8px 16px; display:none; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
+    .source-badge { display:inline-flex; align-items:center; gap:3px; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; }
+
+    /* ── 필터 ── */
+    .filters { background:var(--card); border-bottom:1px solid var(--border); padding:12px 16px; }
+    .filter-section { margin-bottom:10px; }
+    .filter-section:last-child { margin-bottom:0; }
+    .filter-label { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+    .filter-row { display:flex; gap:6px; flex-wrap:wrap; }
+    .chip { flex-shrink:0; padding:7px 14px; border-radius:20px; border:1.5px solid var(--border); background:transparent; color:var(--text-muted); font-size:13px; font-weight:500; cursor:pointer; transition:all .15s; }
+    .chip:active { transform:scale(.96); }
+    .chip.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+
+    .price-control { display:flex; align-items:center; gap:10px; }
+    .price-input { width:80px; padding:7px 10px; border:1.5px solid var(--border); border-radius:10px; font-size:15px; font-weight:700; color:var(--primary); text-align:center; background:var(--bg); }
+    .price-input:focus { border-color:var(--primary); outline:none; }
+    .price-unit { font-size:13px; color:var(--text-muted); }
+
+    /* ── 정렬 바 ── */
+    .sort-bar { padding:10px 16px; font-size:12px; color:var(--text-muted); display:none; background:var(--card); border-bottom:1px solid var(--border); }
+    .sort-bar b { color:var(--primary); font-size:14px; }
+
+    /* ── 카드 ── */
+    .list { padding:8px 12px; }
+    .gas-card {
+      background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+      margin-bottom:14px; overflow:hidden; animation:fadeUp .3s ease both;
+      border-left:4px solid transparent;
+    }
+    .gas-card.cheap { border-left-color:var(--cheap); }
+    .gas-card.over-price { border-left-color:var(--over); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+
+    .gas-card-body { padding:14px 16px; }
+    .gas-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .gas-name { font-size:15px; font-weight:700; flex:1; line-height:1.3; }
+    .gas-brand { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:10px; font-size:11px; font-weight:700; flex-shrink:0; }
+    .brand-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .brand-sk { background:#FFF0F0; color:#E30000; }
+    .brand-sk .brand-dot { background:#E30000; }
+    .brand-gs { background:#E8F5E9; color:#00843D; }
+    .brand-gs .brand-dot { background:#00843D; }
+    .brand-hyundai { background:#EBF3FF; color:#0054A6; }
+    .brand-hyundai .brand-dot { background:#0054A6; }
+    .brand-soil { background:#FFF8E1; color:#D4930A; }
+    .brand-soil .brand-dot { background:#F5B800; }
+    .brand-alttul { background:#FFF3E0; color:#E65100; }
+    .brand-alttul .brand-dot { background:#FF9800; }
+    .brand-nonghyup { background:#E8F5E9; color:#2E7D32; }
+    .brand-nonghyup .brand-dot { background:#4CAF50; }
+    .brand-etc { background:var(--bg); color:var(--text-muted); }
+    .brand-etc .brand-dot { background:var(--text-muted); }
+
+    .price-row { display:flex; align-items:baseline; gap:8px; margin-top:8px; }
+    .gas-price { font-size:30px; font-weight:900; color:var(--cheap); line-height:1; }
+    .gas-price .won { font-size:14px; font-weight:600; }
+    .gas-price.over { color:var(--over); }
+    .gas-cheap-badge {
+      display:inline-flex; align-items:center; gap:4px;
+      background:rgba(27,94,32,.1); color:var(--cheap);
+      border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700;
+    }
+
+    .info-row { display:flex; align-items:flex-start; gap:8px; margin-top:7px; font-size:13px; }
+    .info-icon { flex-shrink:0; width:18px; text-align:center; }
+    .info-val { flex:1; line-height:1.5; }
+    .info-val a { color:var(--primary); text-decoration:none; }
+
+    /* ── 길안내 버튼 ── */
+    .nav-row { display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+    .nav-btn { display:inline-flex; align-items:center; gap:5px; padding:8px 14px; border-radius:20px; font-size:12px; font-weight:700; text-decoration:none; border:none; cursor:pointer; color:#fff; transition:transform .1s; }
+    .nav-btn:active { transform:scale(.95); }
+    .nav-btn.nav-kakao { background:#FEE500; color:#3C1E1E; }
+    .nav-btn.nav-naver { background:#03C75A; }
+    .nav-btn.nav-tmap { background:#0064FF; }
+
+    /* ── 하단 액션 ── */
+    .card-actions { display:flex; border-top:1px solid var(--border); }
+    .action-btn { flex:1; padding:11px 4px; border:none; background:transparent; color:var(--primary); font-size:12px; font-weight:600; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .action-btn .aicon { font-size:18px; }
+    .action-btn+.action-btn { border-left:1px solid var(--border); }
+    .action-btn:active { background:rgba(76,175,80,.08); }
+
+    /* ── 스켈레톤 ── */
+    .skeleton-list { padding:8px 12px; }
+    .skeleton-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:14px; overflow:hidden; }
+    .skel-body { padding:14px 16px; }
+    .skel { background:linear-gradient(90deg,var(--border) 25%,rgba(200,200,200,.3) 50%,var(--border) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:6px; height:14px; margin-bottom:10px; }
+    .skel.w80{width:80%}.skel.w60{width:60%}.skel.w40{width:40%}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+    .state-box { text-align:center; padding:60px 20px; color:var(--text-muted); }
+    .state-box .icon { font-size:56px; margin-bottom:12px; }
+    .state-box h3 { font-size:18px; color:var(--text); margin-bottom:8px; }
+    .state-box p { font-size:14px; line-height:1.6; }
+    .state-btn { margin-top:20px; background:var(--primary); color:#fff; border:none; border-radius:24px; padding:12px 28px; font-size:15px; font-weight:600; cursor:pointer; }
+
+    /* ── 하단 안내 ── */
+    .footer { text-align:center; padding:20px 16px; font-size:11px; color:var(--text-muted); line-height:1.6; }
+    .footer a { color:var(--primary); text-decoration:none; }
+
+    /* ── 반응형: 태블릿 ── */
+    @media (min-width:768px) {
+      .header { padding:24px 24px; padding-top:calc(24px + env(safe-area-inset-top)); }
+      .header-text h1 { font-size:26px; }
+      .loc-bar, .source-bar, .filters, .sort-bar, .search-bar, .search-suggestions { padding-left:24px; padding-right:24px; }
+      .list { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; padding:16px 24px; }
+      .gas-card { margin-bottom:0; }
+      .skeleton-list { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; padding:16px 24px; }
+      .skeleton-card { margin-bottom:0; }
+    }
+
+    /* ── 반응형: PC ── */
+    @media (min-width:1024px) {
+      body { max-width:1200px; margin:0 auto; }
+      .header { border-radius:0 0 20px 20px; padding:28px 32px; padding-top:calc(28px + env(safe-area-inset-top)); }
+      .header-text h1 { font-size:28px; }
+      .header-logo { font-size:40px; }
+      .loc-bar, .source-bar, .filters, .sort-bar, .search-bar, .search-suggestions { padding-left:32px; padding-right:32px; }
+      .list { grid-template-columns:repeat(3,1fr); gap:20px; padding:20px 32px; }
+      .skeleton-list { grid-template-columns:repeat(3,1fr); gap:20px; padding:20px 32px; }
+    }
+
+    @media (min-width:1440px) {
+      body { max-width:1400px; }
+      .list { grid-template-columns:repeat(4,1fr); }
+      .skeleton-list { grid-template-columns:repeat(4,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="header-logo">⛽</div>
+    <div class="header-text">
+      <h1>착한주유소</h1>
+      <div class="tagline">내 주변 가장 저렴한 주유소를 찾아보세요</div>
+    </div>
+  </div>
+</div>
+
+<div class="loc-bar">
+  <span>📍</span>
+  <span class="loc-text" id="locText">위치 가져오는 중...</span>
+  <div class="loc-mode-toggle">
+    <button class="loc-mode-btn active" id="modeGps" onclick="setLocMode('gps')">GPS</button>
+    <button class="loc-mode-btn" id="modeSearch" onclick="setLocMode('search')">검색</button>
+  </div>
+  <button class="refresh-btn" onclick="init()">새로고침</button>
+</div>
+
+<div class="search-bar" id="searchBar">
+  <input class="search-input" id="searchInput" type="text" placeholder="지역명 또는 주소 (예: 강남역, 수원시)" oninput="onSearchInput()" onkeydown="if(event.key==='Enter')doSearch()">
+  <button class="search-btn" onclick="doSearch()">검색</button>
+</div>
+<div class="search-suggestions" id="suggestions"></div>
+
+<div class="source-bar" id="sourceBar">
+  데이터: <span id="sourceBadge"></span>
+</div>
+
+<div class="filters">
+  <div class="filter-section">
+    <div class="filter-label">연료</div>
+    <div class="filter-row">
+      <button class="chip active" data-fuel="B027" onclick="setFuel(this)">휘발유</button>
+      <button class="chip" data-fuel="D047" onclick="setFuel(this)">경유</button>
+      <button class="chip" data-fuel="C004" onclick="setFuel(this)">고급유</button>
+      <button class="chip" data-fuel="K015" onclick="setFuel(this)">등유</button>
+    </div>
+  </div>
+  <div class="filter-section">
+    <div class="filter-label">반경</div>
+    <div class="filter-row">
+      <button class="chip" data-gas-radius="3000" onclick="setGasRadius(this)">3km</button>
+      <button class="chip active" data-gas-radius="5000" onclick="setGasRadius(this)">5km</button>
+      <button class="chip" data-gas-radius="10000" onclick="setGasRadius(this)">10km</button>
+      <button class="chip" data-gas-radius="20000" onclick="setGasRadius(this)">20km</button>
+    </div>
+  </div>
+  <div class="filter-section">
+    <div class="filter-label">기준가</div>
+    <div class="price-control">
+      <input class="price-input" type="number" id="priceThreshold" value="1900" step="50" min="1000" max="3000" onchange="fetchGas()">
+      <span class="price-unit">원/L 이하만 표시</span>
+    </div>
+  </div>
+</div>
+
+<div class="sort-bar" id="sortBar">
+  ⛽ 착한주유소 <b id="cheapCnt">0</b>곳 발견 · 총 <span id="totalCnt">0</span>곳 · 가격순
+</div>
+
+<div id="skeletonArea" class="skeleton-list">
+  <div class="skeleton-card"><div class="skel-body"><div class="skel w80"></div><div class="skel w40"></div><div class="skel w60"></div></div></div>
+  <div class="skeleton-card"><div class="skel-body"><div class="skel w80"></div><div class="skel w40"></div><div class="skel w60"></div></div></div>
+  <div class="skeleton-card"><div class="skel-body"><div class="skel w80"></div><div class="skel w40"></div><div class="skel w60"></div></div></div>
+</div>
+
+<div class="list" id="gasList" style="display:none"></div>
+
+<div class="footer">
+  오피넷 실시간 유가 데이터 기반<br>
+  <a href="https://www.opinet.co.kr" target="_blank">한국석유공사 오피넷</a> · 가격은 실제와 다를 수 있습니다
+</div>
+
+<script>
+  const KAKAO_KEY = '899044931a28dca9c18afb89ed2437e0';
+  const NAVER_ID = 'DyT6fVRJyLy50DFyOEOg';
+  const NAVER_SECRET = '3qvcbwUM8H';
+  const OPINET_KEY = 'F260404771';
+
+  const CORS_PROXIES = [
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+  ];
+
+  let lat=null, lng=null, gasData=[];
+  let locMode='gps', searchTimer=null, fuelType='B027', gasRadius=5000;
+
+  async function fetchWithProxy(url, idx=0) {
+    if(idx >= CORS_PROXIES.length) throw new Error('All proxies failed');
+    try {
+      const res = await fetch(CORS_PROXIES[idx](url));
+      if(!res.ok) throw new Error(res.status);
+      return await res.json();
+    } catch(e) {
+      console.warn(`Proxy ${idx} failed:`, e);
+      return fetchWithProxy(url, idx+1);
+    }
+  }
+
+  /* ── WGS84 → KATEC (7-param Bursa-Wolf) ── */
+  function wgs84ToKatec(wlat, wlng) {
+    const deg=Math.PI/180;
+    const aw=6378137.0, fw=1/298.257223563, bw=aw*(1-fw), e2w=(aw*aw-bw*bw)/(aw*aw);
+    const phi=wlat*deg, lam=wlng*deg;
+    const sp=Math.sin(phi), cp=Math.cos(phi), sl=Math.sin(lam), cl=Math.cos(lam);
+    const Nw=aw/Math.sqrt(1-e2w*sp*sp);
+    const Xw=Nw*cp*cl, Yw=Nw*cp*sl, Zw=Nw*(1-e2w)*sp;
+    const dx=115.80, dy=-474.99, dz=-674.11;
+    const rx=-1.16/3600*deg, ry=2.31/3600*deg, rz=1.63/3600*deg;
+    const sc=1+(-6.43e-6);
+    const Xb=sc*(Xw-rz*Yw+ry*Zw)+dx, Yb=sc*(rz*Xw+Yw-rx*Zw)+dy, Zb=sc*(-ry*Xw+rx*Yw+Zw)+dz;
+    const ab=6377397.155, fb=1/299.1528128, bb=ab*(1-fb), e2b=(ab*ab-bb*bb)/(ab*ab), ep2=(ab*ab-bb*bb)/(bb*bb);
+    const bLng=Math.atan2(Yb,Xb), p=Math.sqrt(Xb*Xb+Yb*Yb);
+    let bLat=Math.atan2(Zb,p*(1-e2b));
+    for(let i=0;i<10;i++){const Nb=ab/Math.sqrt(1-e2b*Math.sin(bLat)*Math.sin(bLat));bLat=Math.atan2(Zb+e2b*Nb*Math.sin(bLat),p);}
+    const k0=0.9999, lng0=128*deg, lat0=38*deg, x0=400000, y0=600000;
+    const sp2=Math.sin(bLat), cp2=Math.cos(bLat), tp=Math.tan(bLat);
+    const N2=ab/Math.sqrt(1-e2b*sp2*sp2), T=tp*tp, C=ep2*cp2*cp2, A=(bLng-lng0)*cp2;
+    const e4=e2b*e2b, e6=e4*e2b;
+    const mArc=t=>ab*((1-e2b/4-3*e4/64-5*e6/256)*t-(3*e2b/8+3*e4/32+45*e6/1024)*Math.sin(2*t)+(15*e4/256+45*e6/1024)*Math.sin(4*t)-(35*e6/3072)*Math.sin(6*t));
+    const x=k0*N2*(A+(1-T+C)*A*A*A/6+(5-18*T+T*T+72*C-58*ep2)*A*A*A*A*A/120)+x0;
+    const y=k0*(mArc(bLat)-mArc(lat0)+N2*tp*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24+(61-58*T+T*T+600*C-330*ep2)*A*A*A*A*A*A/720))+y0;
+    return {x:Math.round(x), y:Math.round(y)};
+  }
+
+  /* ── 역 지오코딩 ── */
+  async function reverseGeocode(lat, lng) {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&accept-language=ko`);
+      const data = await res.json();
+      const addr = data.address || {};
+      // 위치명 표시 업데이트
+      const locName = [addr.city||addr.town||addr.county, addr.suburb||addr.district||addr.quarter||addr.neighbourhood].filter(Boolean).join(' ');
+      if(locName) {
+        document.getElementById('locText').textContent = `📌 ${locName}`;
+        document.getElementById('locText').className = 'loc-text active';
+      }
+      return addr.city || addr.town || addr.county || addr.suburb || addr.district || '';
+    } catch(e) { return ''; }
+  }
+
+  /* ── 필터 핸들러 ── */
+  function setFuel(btn) {
+    document.querySelectorAll('[data-fuel]').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');
+    fuelType = btn.dataset.fuel;
+    if(lat) fetchGas();
+  }
+
+  function setGasRadius(btn) {
+    document.querySelectorAll('[data-gas-radius]').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');
+    gasRadius = +btn.dataset.gasRadius;
+    if(lat) fetchGas();
+  }
+
+  /* ── 메인: 주유소 검색 ── */
+  async function fetchGas() {
+    if(!lat) return;
+    const el = document.getElementById('gasList');
+    const skel = document.getElementById('skeletonArea');
+    skel.style.display='block'; el.style.display='none';
+    document.getElementById('sortBar').style.display='none';
+
+    const threshold = parseInt(document.getElementById('priceThreshold').value) || 1900;
+
+    // 1단계: 오피넷 실시간
+    try {
+      const katec = wgs84ToKatec(lat, lng);
+      const apiUrl = `https://www.opinet.co.kr/api/aroundAll.do?code=${OPINET_KEY}&x=${katec.x}&y=${katec.y}&radius=${gasRadius}&sort=1&prodcd=${fuelType}&out=json`;
+      const gasJson = await fetchWithProxy(apiUrl);
+      const oils = gasJson?.RESULT?.OIL || [];
+      if(oils.length > 0) {
+        gasData = oils.map(o => ({
+          id:o.UNI_ID, name:o.OS_NM, brand:getBrandName(o.POLL_DIV_CD),
+          price:o.PRICE, dist:Math.round(o.DISTANCE),
+          address:o.NEW_ADR||o.VAN_ADR||'', phone:o.TEL||'',
+          lat:null, lng:null, isCheap:o.PRICE<=threshold
+        }));
+        setSourceBadge('opinet');
+        renderCards(el, skel, threshold);
+        return;
+      }
+    } catch(e) { console.warn('Opinet failed:', e); }
+
+    // 2단계: 카카오 폴백
+    try {
+      const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent('주유소')}&x=${lng}&y=${lat}&radius=${gasRadius}&size=15&sort=distance&category_group_code=OL7`,{
+        headers:{Authorization:`KakaoAK ${KAKAO_KEY}`}
+      });
+      const data = await res.json();
+      let stations = data.documents || [];
+      if(stations.length > 0) {
+        gasData = stations.map(s => {
+          const brand = detectBrand(s.place_name);
+          const price = getEstimatedPrice(brand, fuelType) + Math.floor(Math.random()*80) - 40;
+          return {
+            id:s.id, name:s.place_name, brand,
+            price, dist:parseInt(s.distance)||0,
+            address:s.road_address_name||s.address_name,
+            phone:s.phone, lat:parseFloat(s.y), lng:parseFloat(s.x),
+            isCheap:price<=threshold
+          };
+        }).sort((a,b) => a.price - b.price);
+        setSourceBadge('kakao');
+        renderCards(el, skel, threshold);
+        return;
+      }
+    } catch(e) { console.warn('Kakao failed:', e); }
+
+    // 3단계: 네이버 폴백
+    try {
+      const area = await reverseGeocode(lat, lng);
+      if(area) {
+        const url = `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent('주유소 '+area)}&display=5&sort=random`;
+        const proxyUrl = CORS_PROXIES[0](url);
+        const res = await fetch(proxyUrl, {
+          headers:{'X-Naver-Client-Id':NAVER_ID, 'X-Naver-Client-Secret':NAVER_SECRET}
+        });
+        if(res.ok) {
+          const json = await res.json();
+          const items = (json.items||[]).filter(i => (i.category||'').includes('주유소'));
+          if(items.length > 0) {
+            gasData = items.map(i => {
+              const brand = detectBrand(i.title.replace(/<[^>]*>/g,''));
+              const price = getEstimatedPrice(brand, fuelType) + Math.floor(Math.random()*80) - 40;
+              return {
+                id:i.mapx, name:i.title.replace(/<[^>]*>/g,''), brand,
+                price, dist:0, address:i.roadAddress||i.address||'',
+                phone:i.telephone||'', lat:null, lng:null, isCheap:price<=threshold
+              };
+            }).sort((a,b) => a.price - b.price);
+            setSourceBadge('naver');
+            renderCards(el, skel, threshold);
+            return;
+          }
+        }
+      }
+    } catch(e) { console.warn('Naver failed:', e); }
+
+    // 실패
+    skel.style.display='none'; el.style.display='block';
+    el.innerHTML = `<div class="state-box"><div class="icon">⛽</div><h3>주유소를 찾을 수 없습니다</h3><p>반경을 넓히거나 인터넷 연결을 확인해 주세요.</p><button class="state-btn" onclick="fetchGas()">다시 시도</button></div>`;
+  }
+
+  /* ── 카드 렌더링 ── */
+  function renderCards(el, skel, threshold) {
+    skel.style.display = 'none';
+    const cheapOnes = gasData.filter(g => g.isCheap);
+    document.getElementById('cheapCnt').textContent = cheapOnes.length;
+    document.getElementById('totalCnt').textContent = gasData.length;
+    document.getElementById('sortBar').style.display = 'block';
+    el.style.display = 'block';
+
+    if(!gasData.length) {
+      el.innerHTML = `<div class="state-box"><div class="icon">⛽</div><h3>근처 주유소를 찾을 수 없습니다</h3><p>반경을 넓혀보세요.</p></div>`;
+      return;
+    }
+
+    el.innerHTML = gasData.map((g, i) => {
+      const hasCoord = g.lat && g.lng;
+      return `
+      <div class="gas-card ${g.isCheap?'cheap':'over-price'}" style="animation-delay:${i*.04}s">
+        <div class="gas-card-body">
+          <div class="gas-header">
+            <div class="gas-name">${escHtml(g.name)}</div>
+            ${brandBadge(g.brand)}
+          </div>
+          <div class="price-row">
+            <div class="gas-price ${g.isCheap?'':'over'}">
+              ${g.price.toLocaleString()}<span class="won">원/L</span>
+            </div>
+            ${g.isCheap?'<div class="gas-cheap-badge">💚 착한가격</div>':''}
+          </div>
+          ${g.dist?`<div class="info-row" style="margin-top:8px"><span class="info-icon">📍</span><span class="info-val" style="color:var(--primary);font-weight:600">${fmtDist(g.dist)}</span></div>`:''}
+          ${g.address?`<div class="info-row"><span class="info-icon">🏠</span><span class="info-val">${escHtml(g.address)}</span></div>`:''}
+          ${g.phone?`<div class="info-row"><span class="info-icon">📞</span><span class="info-val"><a href="tel:${g.phone}">${g.phone}</a></span></div>`:''}
+          <div class="nav-row">
+            <button class="nav-btn nav-kakao" onclick="navKakao('${escHtml(g.name)}',${g.lat||0},${g.lng||0},'${escHtml(g.address)}')">🟡 카카오</button>
+            <button class="nav-btn nav-naver" onclick="navNaver('${escHtml(g.name)}',${g.lat||0},${g.lng||0},'${escHtml(g.address)}')">🟢 네이버</button>
+            <button class="nav-btn nav-tmap" onclick="navTmap('${escHtml(g.name)}',${g.lat||0},${g.lng||0},'${escHtml(g.address)}')">🔵 티맵</button>
+          </div>
+        </div>
+        <div class="card-actions">
+          ${g.phone?`<button class="action-btn" onclick="call('${g.phone}')"><span class="aicon">📞</span>전화</button>`:''}
+          <button class="action-btn" onclick="shareStation('${escHtml(g.name)}',${g.price},'${escHtml(g.address)}')"><span class="aicon">📤</span>공유</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── 브랜드 ── */
+  function getBrandName(code) {
+    const map={SKE:'SK에너지',GSC:'GS칼텍스',HDO:'현대오일뱅크',SOL:'S-OIL',RTO:'자영알뜰',RTX:'고속도로알뜰',NHO:'농협알뜰',ETC:'기타',E1G:'E1',SKG:'SK가스'};
+    return map[code]||code||'기타';
+  }
+
+  function brandBadge(brand) {
+    const b = brand||'';
+    let cls='brand-etc', label=brand;
+    if(b.includes('SK')) { cls='brand-sk'; label='SK'; }
+    else if(b.includes('GS')) { cls='brand-gs'; label='GS'; }
+    else if(b.includes('현대')||b.includes('HD')) { cls='brand-hyundai'; label='HD현대'; }
+    else if(b.includes('S-OIL')||b.includes('에쓰')) { cls='brand-soil'; label='S-OIL'; }
+    else if(b.includes('농협')) { cls='brand-nonghyup'; label='농협'; }
+    else if(b.includes('알뜰')) { cls='brand-alttul'; label='알뜰'; }
+    else if(b.includes('E1')) { cls='brand-etc'; label='E1'; }
+    return `<span class="gas-brand ${cls}"><span class="brand-dot"></span>${escHtml(label)}</span>`;
+  }
+
+  function detectBrand(name) {
+    if(name.includes('SK')||name.includes('에스케이'))return'SK';
+    if(name.includes('GS')||name.includes('지에스'))return'GS';
+    if(name.includes('현대')||name.includes('오일뱅크'))return'현대오일뱅크';
+    if(name.includes('S-OIL')||name.includes('에쓰오일')||name.includes('S오일'))return'S-OIL';
+    if(name.includes('알뜰'))return'알뜰';
+    if(name.includes('자영')||name.includes('개인'))return'자영';
+    return'기타';
+  }
+
+  function getEstimatedPrice(brand, fuel) {
+    const prices = {
+      B027:{알뜰:1750,자영:1780,기타:1800,SK:1840,GS:1830,'S-OIL':1835,현대오일뱅크:1825},
+      D047:{알뜰:1620,자영:1640,기타:1660,SK:1700,GS:1690,'S-OIL':1695,현대오일뱅크:1685},
+      C004:{알뜰:1950,자영:1980,기타:2000,SK:2050,GS:2040,'S-OIL':2045,현대오일뱅크:2030},
+      K015:{알뜰:1100,자영:1120,기타:1140,SK:1180,GS:1170,'S-OIL':1175,현대오일뱅크:1160}
+    };
+    return (prices[fuel]||prices.B027)[brand]||1830;
+  }
+
+  /* ── 소스 배지 ── */
+  function setSourceBadge(src) {
+    document.getElementById('sourceBar').style.display = 'flex';
+    const badges = {
+      opinet: '<span class="source-badge" style="background:#1B5E20;color:#fff">⛽ 오피넷 실시간</span>',
+      kakao: '<span class="source-badge" style="background:#FEE500;color:#3C1E1E">🟡 카카오 (추정가)</span>',
+      naver: '<span class="source-badge" style="background:#03C75A;color:#fff">🟢 네이버 (추정가)</span>'
+    };
+    document.getElementById('sourceBadge').innerHTML = badges[src]||'';
+  }
+
+  /* ── 위치 ── */
+  function setLocMode(mode) {
+    locMode = mode;
+    document.getElementById('modeGps').classList.toggle('active', mode==='gps');
+    document.getElementById('modeSearch').classList.toggle('active', mode==='search');
+    document.getElementById('searchBar').style.display = mode==='search' ? 'flex' : 'none';
+    document.getElementById('suggestions').classList.remove('open');
+    if(mode==='gps') init();
+    else document.getElementById('searchInput').focus();
+  }
+
+  function onSearchInput() {
+    clearTimeout(searchTimer);
+    const q = document.getElementById('searchInput').value.trim();
+    if(q.length < 2) { document.getElementById('suggestions').classList.remove('open'); return; }
+    searchTimer = setTimeout(() => searchAddress(q), 300);
+  }
+
+  async function searchAddress(q) {
+    try {
+      // Nominatim 검색 (카카오 대신)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=kr&limit=5&accept-language=ko`);
+      const docs = await res.json();
+      const el = document.getElementById('suggestions');
+      if(!docs.length) { el.classList.remove('open'); return; }
+      el.innerHTML = docs.map(d => `
+        <div class="suggestion-item" onclick="selectLocation(${d.lat},${d.lon},'${escHtml(d.display_name.split(',')[0])}')">
+          <span>📍</span>
+          <div>
+            <div class="suggestion-name">${escHtml(d.display_name.split(',')[0])}</div>
+            <div class="suggestion-addr">${escHtml(d.display_name.split(',').slice(1,3).join(','))}</div>
+          </div>
+        </div>`).join('');
+      el.classList.add('open');
+    } catch(e) { console.error(e); }
+  }
+
+  async function doSearch() {
+    const q = document.getElementById('searchInput').value.trim();
+    if(!q) return;
+    document.getElementById('suggestions').classList.remove('open');
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=kr&limit=1&accept-language=ko`);
+      const docs = await res.json();
+      if(docs.length) {
+        selectLocation(parseFloat(docs[0].lat), parseFloat(docs[0].lon), docs[0].display_name.split(',')[0]);
+      } else {
+        alert('검색 결과가 없습니다. 다른 지역명이나 주소를 입력해 주세요.');
+      }
+    } catch(e) { alert('검색 중 오류가 발생했습니다.'); }
+  }
+
+  function selectLocation(newLat, newLng, name) {
+    lat = newLat; lng = newLng;
+    document.getElementById('locText').textContent = `📌 ${name}`;
+    document.getElementById('locText').className = 'loc-text active';
+    document.getElementById('suggestions').classList.remove('open');
+    document.getElementById('searchInput').value = name;
+    fetchGas();
+  }
+
+  function init() {
+    document.getElementById('locText').textContent = '위치 가져오는 중...';
+    document.getElementById('locText').className = 'loc-text';
+    document.getElementById('gasList').style.display = 'none';
+    document.getElementById('skeletonArea').style.display = 'block';
+    document.getElementById('sortBar').style.display = 'none';
+    document.getElementById('sourceBar').style.display = 'none';
+
+    if(!navigator.geolocation) { showErr('GPS 미지원','이 브라우저는 위치를 지원하지 않습니다.'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      lat = pos.coords.latitude; lng = pos.coords.longitude;
+      document.getElementById('locText').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      document.getElementById('locText').className = 'loc-text active';
+      // 역지오코딩으로 위치명 업데이트
+      reverseGeocode(lat, lng);
+      fetchGas();
+    }, err => {
+      showErr('위치 오류', err.code===1 ? '위치 권한을 허용해 주세요.' : '위치를 가져올 수 없습니다.');
+    }, {enableHighAccuracy:true, timeout:10000, maximumAge:60000});
+  }
+
+  /* ── 유틸리티 ── */
+  function fmtDist(m) { return m >= 1000 ? `${(m/1000).toFixed(1)}km` : `${m}m`; }
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function call(p) { window.location.href = 'tel:'+p; }
+
+  function showErr(t, m) {
+    document.getElementById('skeletonArea').style.display = 'none';
+    document.getElementById('gasList').style.display = 'block';
+    document.getElementById('gasList').innerHTML = `<div class="state-box"><div class="icon">😕</div><h3>${t}</h3><p>${m}</p><button class="state-btn" onclick="init()">다시 시도</button></div>`;
+  }
+
+  /* ── 길안내 ── */
+  function navKakao(name, dlat, dlng, addr) {
+    if(dlat && dlng) window.open(`https://map.kakao.com/link/to/${encodeURIComponent(name)},${dlat},${dlng}`);
+    else window.open(`https://map.kakao.com/link/search/${encodeURIComponent(name+' '+addr)}`);
+  }
+
+  function navNaver(name, dlat, dlng, addr) {
+    if(dlat && dlng) {
+      const appUrl = `nmap://navigation?dlat=${dlat}&dlng=${dlng}&dname=${encodeURIComponent(name)}&appname=find-gas-station`;
+      const webUrl = `https://map.naver.com/v5/directions/-/${dlng},${dlat},${encodeURIComponent(name)}/-/car`;
+      tryAppOrWeb(appUrl, webUrl);
+    } else window.open(`https://map.naver.com/v5/search/${encodeURIComponent(name+' '+addr)}`);
+  }
+
+  function navTmap(name, dlat, dlng, addr) {
+    if(dlat && dlng) {
+      const appUrl = `tmap://route?goalx=${dlng}&goaly=${dlat}&goalname=${encodeURIComponent(name)}`;
+      const webUrl = `https://tmap.life/search?query=${encodeURIComponent(name+' '+addr)}`;
+      tryAppOrWeb(appUrl, webUrl);
+    } else window.open(`https://tmap.life/search?query=${encodeURIComponent(name+' '+addr)}`);
+  }
+
+  function tryAppOrWeb(appUrl, webUrl) {
+    const start = Date.now();
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = appUrl;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      if(Date.now() - start < 1800) window.open(webUrl);
+    }, 1500);
+  }
+
+  /* ── 공유 ── */
+  async function shareStation(name, price, addr) {
+    const text = `⛽ ${name}\n💰 ${price.toLocaleString()}원/L\n📍 ${addr}\n\n착한주유소에서 찾았어요!`;
+    if(navigator.share) {
+      try { await navigator.share({title:'착한주유소 - '+name, text}); return; } catch(e){}
+    }
+    navigator.clipboard?.writeText(text).then(() => alert('📋 복사됨!'));
+  }
+
+  window.onload = init;
+</script>
+</body>
+</html>
