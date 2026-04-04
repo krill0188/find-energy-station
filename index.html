@@ -883,8 +883,8 @@
   }
 
   /* ── 제휴 상품 (쿠팡/알리) ── */
-  const COUPANG_AFF_ID = 'YOUR_COUPANG_PARTNER_ID'; // 쿠팡 파트너스 ID 입력
-  const ALI_AFF_ID = 'YOUR_ALI_AFFILIATE_ID'; // 알리 어필리에이트 ID 입력
+  const COUPANG_AFF_ID = 'AF2655185'; // 쿠팡 파트너스 ID 입력
+  const ALI_AFF_ID = 'fmradio'; // 알리 어필리에이트 ID 입력
 
   const AFF_PRODUCTS = [
     { name:'차량용 휴대폰 거치대', emoji:'📱', from:'쿠팡', type:'coupang', keyword:'차량용 휴대폰 거치대' },
@@ -904,12 +904,12 @@
       if(p.type === 'coupang') {
         url = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.keyword)}&channel=user`;
         // 파트너스 ID 있으면 어필리에이트 링크로 전환
-        if(COUPANG_AFF_ID !== 'YOUR_COUPANG_PARTNER_ID') {
+        if(COUPANG_AFF_ID !== 'AF2655185') {
           url = `https://link.coupang.com/a/${COUPANG_AFF_ID}?url=${encodeURIComponent(url)}`;
         }
       } else {
         url = `https://www.aliexpress.com/w/wholesale-${encodeURIComponent(p.keyword)}.html`;
-        if(ALI_AFF_ID !== 'YOUR_ALI_AFFILIATE_ID') {
+        if(ALI_AFF_ID !== 'fmradio') {
           url += `&aff_id=${ALI_AFF_ID}`;
         }
       }
