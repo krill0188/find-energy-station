@@ -1,4 +1,4 @@
-const CACHE = 'energy-v1';
+const CACHE = 'energy-v2';
 const ASSETS = ['./index.html', './manifest.json', './icon-32.png', './icon-180.png', './icon-192.png', './icon-512.png', './favicon.ico'];
 
 self.addEventListener('install', e => {
@@ -12,11 +12,9 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // API 요청은 네트워크 우선
-  if (e.request.url.includes('opinet.co.kr') || e.request.url.includes('dapi.kakao.com') || e.request.url.includes('openapi.naver.com') || e.request.url.includes('nominatim') || e.request.url.includes('corsproxy') || e.request.url.includes('allorigins') || e.request.url.includes('codetabs')) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-    return;
-  }
-  // 정적 자원은 캐시 우선
+  const url = e.request.url;
+  // 외부 도메인은 서비스 워커가 무시 (쿠팡, 알리, API 등)
+  if (!url.includes(self.location.origin)) return;
+  // 같은 도메인 정적 자원만 캐시
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
