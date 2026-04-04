@@ -364,9 +364,17 @@
 
 <div class="list" id="gasList" style="display:none"></div>
 
-<!-- 광고 슬롯 (애드센스 코드 삽입 위치) -->
-<div class="ad-slot" id="adSlot1">
-  <div class="ad-slot-text"><!-- 애드센스 승인 후 이 영역에 광고 코드 삽입 --></div>
+<!-- 쿠팡 파트너스 배너 -->
+<div style="text-align:center;padding:12px">
+  <a href="https://link.coupang.com/a/eh8PUz" target="_blank" referrerpolicy="unsafe-url">
+    <img src="https://ads-partners.coupang.com/banners/978069?subId=&traceId=V0-301-c1744fa69c93f626-I978069&w=320&h=100" alt="쿠팡 자동차용품" style="max-width:100%;border-radius:12px;">
+  </a>
+  <div style="font-size:10px;color:var(--text-muted);margin-top:4px">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div>
+</div>
+
+<!-- 애드센스 슬롯 (승인 후 코드 삽입) -->
+<div class="ad-slot" id="adSlot1" style="display:none">
+  <!-- 애드센스 승인 후 이 영역에 광고 코드 삽입하고 display:none 제거 -->
 </div>
 
 <!-- 자동차 용품 제휴 배너 -->
@@ -957,9 +965,9 @@
   function affCard(p) {
     let url;
     if(p.type === 'coupang') {
-      url = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.keyword)}&channel=user&sorter=scoreDesc&listSize=36`;
+      url = p.url || COUPANG_LINK;
     } else {
-      const slug = p.keyword.replace(/\s+/g, '-');
+      const slug = (p.keyword||'').replace(/\s+/g, '-');
       url = `https://ko.aliexpress.com/w/wholesale-${slug}.html`;
     }
     return `
@@ -976,15 +984,18 @@
   }
 
   /* ── 제휴 상품 (쿠팡/알리) ── */
-  const COUPANG_AFF_ID = 'AF2655185'; // 쿠팡 파트너스 ID 입력
-  const ALI_AFF_ID = 'fmradio'; // 알리 어필리에이트 ID 입력
+  const ALI_AFF_ID = 'fmradio';
+
+  // 쿠팡 파트너스 정식 추적 링크
+  const COUPANG_LINK = 'https://link.coupang.com/a/eh8PUz';
+  const COUPANG_BANNER = 'https://ads-partners.coupang.com/banners/978069?subId=&traceId=V0-301-c1744fa69c93f626-I978069&w=320&h=100';
 
   const AFF_PRODUCTS = [
-    { name:'차량용 휴대폰 거치대', emoji:'📱', from:'쿠팡', type:'coupang', keyword:'차량용 휴대폰 거치대' },
-    { name:'차량용 충전기 고속', emoji:'🔌', from:'쿠팡', type:'coupang', keyword:'차량용 충전기 고속충전' },
-    { name:'세차용품 세트', emoji:'🧽', from:'쿠팡', type:'coupang', keyword:'세차용품 세트' },
-    { name:'차량용 방향제', emoji:'🌸', from:'쿠팡', type:'coupang', keyword:'차량용 방향제' },
-    { name:'블랙박스 추천', emoji:'📹', from:'쿠팡', type:'coupang', keyword:'차량용 블랙박스' },
+    { name:'로켓배송 자동차용품', emoji:'🚗', from:'쿠팡', type:'coupang', url:COUPANG_LINK },
+    { name:'차량용 휴대폰 거치대', emoji:'📱', from:'쿠팡', type:'coupang', url:COUPANG_LINK },
+    { name:'차량용 충전기', emoji:'🔌', from:'쿠팡', type:'coupang', url:COUPANG_LINK },
+    { name:'세차용품 세트', emoji:'🧽', from:'쿠팡', type:'coupang', url:COUPANG_LINK },
+    { name:'블랙박스 추천', emoji:'📹', from:'쿠팡', type:'coupang', url:COUPANG_LINK },
     { name:'타이어 공기압 측정기', emoji:'🔧', from:'알리', type:'ali', keyword:'car-tire-pressure-gauge' },
     { name:'LED 실내등 세트', emoji:'💡', from:'알리', type:'ali', keyword:'car-interior-LED-light' },
     { name:'트렁크 정리함', emoji:'📦', from:'알리', type:'ali', keyword:'car-trunk-organizer' },
@@ -995,9 +1006,9 @@
     el.innerHTML = AFF_PRODUCTS.map(p => {
       let url;
       if(p.type === 'coupang') {
-        url = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.keyword)}&channel=user&sorter=scoreDesc&listSize=36`;
+        url = p.url || COUPANG_LINK;
       } else {
-        const slug = p.keyword.replace(/\s+/g, '-');
+        const slug = (p.keyword||'').replace(/\s+/g, '-');
         url = `https://ko.aliexpress.com/w/wholesale-${slug}.html`;
       }
       return `
