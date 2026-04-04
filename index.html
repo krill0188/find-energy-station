@@ -647,38 +647,36 @@
     document.getElementById('gasList').innerHTML = `<div class="state-box"><div class="icon">😕</div><h3>${t}</h3><p>${m}</p><button class="state-btn" onclick="init()">다시 시도</button></div>`;
   }
 
-  /* ── 길안내 ── */
+  /* ── 길안내 (주소 기반) ── */
   function navKakao(name, dlat, dlng, addr) {
-    if(dlat && dlng) window.open(`https://map.kakao.com/link/to/${encodeURIComponent(name)},${dlat},${dlng}`);
-    else window.open(`https://map.kakao.com/link/search/${encodeURIComponent(name+' '+addr)}`);
+    // 카카오: 주소로 검색 → 길안내
+    const q = addr || name;
+    window.open(`https://map.kakao.com/link/search/${encodeURIComponent(q)}`);
   }
 
   function navNaver(name, dlat, dlng, addr) {
-    if(dlat && dlng) {
-      const appUrl = `nmap://navigation?dlat=${dlat}&dlng=${dlng}&dname=${encodeURIComponent(name)}&appname=find-gas-station`;
-      const webUrl = `https://map.naver.com/v5/directions/-/${dlng},${dlat},${encodeURIComponent(name)}/-/car`;
-      tryAppOrWeb(appUrl, webUrl);
-    } else window.open(`https://map.naver.com/v5/search/${encodeURIComponent(name+' '+addr)}`);
+    // 네이버: 주소를 목적지로 검색
+    const q = addr || name;
+    // 모바일 앱
+    const appUrl = `nmap://search?query=${encodeURIComponent(q)}&appname=find-gas-station`;
+    // 웹
+    const webUrl = `https://map.naver.com/v5/search/${encodeURIComponent(q)}`;
+    tryAppOrWeb(appUrl, webUrl);
   }
 
   function navTmap(name, dlat, dlng, addr) {
-    if(dlat && dlng) {
-      const appUrl = `tmap://route?goalx=${dlng}&goaly=${dlat}&goalname=${encodeURIComponent(name)}`;
-      const webUrl = `https://tmap.life/search?query=${encodeURIComponent(name+' '+addr)}`;
-      tryAppOrWeb(appUrl, webUrl);
-    } else window.open(`https://tmap.life/search?query=${encodeURIComponent(name+' '+addr)}`);
+    // 티맵: 주소로 검색
+    const q = addr || name;
+    const appUrl = `tmap://search?name=${encodeURIComponent(q)}`;
+    const webUrl = `https://tmap.life/search?query=${encodeURIComponent(q)}`;
+    tryAppOrWeb(appUrl, webUrl);
   }
 
   function tryAppOrWeb(appUrl, webUrl) {
-    const start = Date.now();
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = appUrl;
-    document.body.appendChild(iframe);
+    const w = window.open(appUrl);
     setTimeout(() => {
-      document.body.removeChild(iframe);
-      if(Date.now() - start < 1800) window.open(webUrl);
-    }, 1500);
+      try { if(!w || w.closed) window.open(webUrl); } catch(e) { window.open(webUrl); }
+    }, 1000);
   }
 
   /* ── 공유 ── */
