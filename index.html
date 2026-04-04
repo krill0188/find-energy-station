@@ -269,7 +269,7 @@
 </div>
 
 <div class="sort-bar" id="sortBar">
-  ⛽ 착한주유소 <b id="cheapCnt">0</b>곳 발견 · 총 <span id="totalCnt">0</span>곳 · 가격순
+  💚 착한가격 <b id="cheapCnt">0</b>곳 · 총 <span id="totalCnt">0</span>곳 표시 (기준가+50원) · 가격순
 </div>
 
 <div id="skeletonArea" class="skeleton-list">
@@ -461,6 +461,8 @@
   /* ── 카드 렌더링 ── */
   function renderCards(el, skel, threshold) {
     skel.style.display = 'none';
+    // 기준가 +50원까지만 표시
+    gasData = gasData.filter(g => g.price <= threshold + 50);
     const cheapOnes = gasData.filter(g => g.isCheap);
     document.getElementById('cheapCnt').textContent = cheapOnes.length;
     document.getElementById('totalCnt').textContent = gasData.length;
