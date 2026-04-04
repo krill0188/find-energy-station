@@ -210,8 +210,27 @@
     .state-box p { font-size:14px; line-height:1.6; }
     .state-btn { margin-top:20px; background:var(--primary); color:#fff; border:none; border-radius:24px; padding:12px 28px; font-size:15px; font-weight:600; cursor:pointer; }
 
+    /* ── 제휴 배너 ── */
+    .affiliate-section { padding:12px; }
+    .aff-title { font-size:13px; font-weight:700; color:var(--text-muted); padding:0 4px 8px; }
+    .aff-scroll { display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; padding-bottom:4px; }
+    .aff-scroll::-webkit-scrollbar { display:none; }
+    .aff-card { flex-shrink:0; width:140px; background:var(--card); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; text-decoration:none; color:var(--text); transition:transform .15s; }
+    .aff-card:active { transform:scale(.96); }
+    .aff-card-img { width:100%; height:90px; display:flex; align-items:center; justify-content:center; font-size:40px; }
+    .aff-card-img.coupang { background:linear-gradient(135deg,#FF5722,#E64A19); }
+    .aff-card-img.ali { background:linear-gradient(135deg,#FF6A00,#E65100); }
+    .aff-card-body { padding:8px 10px; }
+    .aff-card-name { font-size:12px; font-weight:700; line-height:1.3; }
+    .aff-card-price { font-size:11px; color:var(--primary); font-weight:600; margin-top:2px; }
+    .aff-card-from { font-size:10px; color:var(--text-muted); margin-top:2px; }
+
+    /* ── 광고 슬롯 ── */
+    .ad-slot { background:var(--card); border:1px dashed var(--border); border-radius:12px; margin:8px 12px; padding:16px; text-align:center; min-height:100px; display:flex; align-items:center; justify-content:center; }
+    .ad-slot-text { font-size:11px; color:var(--text-muted); }
+
     /* ── 하단 안내 ── */
-    .footer { text-align:center; padding:20px 16px; font-size:11px; color:var(--text-muted); line-height:1.6; }
+    .footer { text-align:center; padding:20px 16px 80px; font-size:11px; color:var(--text-muted); line-height:1.6; }
     .footer a { color:var(--primary); text-decoration:none; }
 
     /* ── 설치 배너 ── */
@@ -323,9 +342,21 @@
 
 <div class="list" id="gasList" style="display:none"></div>
 
+<!-- 광고 슬롯 (애드센스 코드 삽입 위치) -->
+<div class="ad-slot" id="adSlot1">
+  <div class="ad-slot-text"><!-- 애드센스 승인 후 이 영역에 광고 코드 삽입 --></div>
+</div>
+
+<!-- 자동차 용품 제휴 배너 -->
+<div class="affiliate-section" id="affSection">
+  <div class="aff-title">🚗 자동차 용품 추천</div>
+  <div class="aff-scroll" id="affScroll"></div>
+</div>
+
 <div class="footer">
   오피넷 실시간 유가 데이터 기반<br>
-  <a href="https://www.opinet.co.kr" target="_blank">한국석유공사 오피넷</a> · 가격은 실제와 다를 수 있습니다
+  <a href="https://www.opinet.co.kr" target="_blank">한국석유공사 오피넷</a> · 가격은 실제와 다를 수 있습니다<br>
+  <a href="privacy.html">개인정보처리방침</a>
 </div>
 
 <div class="install-banner" id="installBanner" style="display:none">
@@ -850,6 +881,50 @@
     }
     navigator.clipboard?.writeText(text).then(() => alert('📋 복사됨!'));
   }
+
+  /* ── 제휴 상품 (쿠팡/알리) ── */
+  const COUPANG_AFF_ID = 'YOUR_COUPANG_PARTNER_ID'; // 쿠팡 파트너스 ID 입력
+  const ALI_AFF_ID = 'YOUR_ALI_AFFILIATE_ID'; // 알리 어필리에이트 ID 입력
+
+  const AFF_PRODUCTS = [
+    { name:'차량용 휴대폰 거치대', emoji:'📱', from:'쿠팡', type:'coupang', keyword:'차량용 휴대폰 거치대' },
+    { name:'차량용 충전기 고속', emoji:'🔌', from:'쿠팡', type:'coupang', keyword:'차량용 충전기 고속충전' },
+    { name:'세차용품 세트', emoji:'🧽', from:'쿠팡', type:'coupang', keyword:'세차용품 세트' },
+    { name:'차량용 방향제', emoji:'🌸', from:'쿠팡', type:'coupang', keyword:'차량용 방향제' },
+    { name:'블랙박스 추천', emoji:'📹', from:'쿠팡', type:'coupang', keyword:'차량용 블랙박스' },
+    { name:'타이어 공기압 측정기', emoji:'🔧', from:'알리', type:'ali', keyword:'tire pressure gauge' },
+    { name:'LED 실내등 세트', emoji:'💡', from:'알리', type:'ali', keyword:'car interior LED light' },
+    { name:'트렁크 정리함', emoji:'📦', from:'알리', type:'ali', keyword:'car trunk organizer' },
+  ];
+
+  function renderAffiliates() {
+    const el = document.getElementById('affScroll');
+    el.innerHTML = AFF_PRODUCTS.map(p => {
+      let url;
+      if(p.type === 'coupang') {
+        url = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.keyword)}&channel=user`;
+        // 파트너스 ID 있으면 어필리에이트 링크로 전환
+        if(COUPANG_AFF_ID !== 'YOUR_COUPANG_PARTNER_ID') {
+          url = `https://link.coupang.com/a/${COUPANG_AFF_ID}?url=${encodeURIComponent(url)}`;
+        }
+      } else {
+        url = `https://www.aliexpress.com/w/wholesale-${encodeURIComponent(p.keyword)}.html`;
+        if(ALI_AFF_ID !== 'YOUR_ALI_AFFILIATE_ID') {
+          url += `&aff_id=${ALI_AFF_ID}`;
+        }
+      }
+      return `
+      <a class="aff-card" href="${url}" target="_blank" rel="noopener">
+        <div class="aff-card-img ${p.type==='coupang'?'coupang':'ali'}">${p.emoji}</div>
+        <div class="aff-card-body">
+          <div class="aff-card-name">${escHtml(p.name)}</div>
+          <div class="aff-card-from">${p.from}</div>
+        </div>
+      </a>`;
+    }).join('');
+  }
+
+  window.addEventListener('load', renderAffiliates);
 
   /* ── PWA 설치 프롬프트 ── */
   let deferredPrompt = null;
