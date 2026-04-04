@@ -246,8 +246,8 @@
     <div class="filter-row">
       <button class="chip active" data-fuel="B027" onclick="setFuel(this)">휘발유</button>
       <button class="chip" data-fuel="D047" onclick="setFuel(this)">경유</button>
-      <button class="chip" data-fuel="C004" onclick="setFuel(this)">고급유</button>
-      <button class="chip" data-fuel="K015" onclick="setFuel(this)">등유</button>
+      <button class="chip" data-fuel="K015" onclick="setFuel(this)">가스(LPG)</button>
+      <button class="chip" data-fuel="EV" onclick="setFuel(this)">전기</button>
     </div>
   </div>
   <div class="filter-section">
@@ -379,6 +379,12 @@
 
     const threshold = parseInt(document.getElementById('priceThreshold').value) || 1900;
 
+    // 전기차 충전소는 별도 검색
+    if(fuelType === 'EV') {
+      await fetchEV(el, skel, threshold);
+      return;
+    }
+
     // 1단계: 오피넷 실시간
     try {
       const katec = wgs84ToKatec(lat, lng);
@@ -400,7 +406,9 @@
 
     // 2단계: 카카오 폴백
     try {
-      const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent('주유소')}&x=${lng}&y=${lat}&radius=${gasRadius}&size=15&sort=distance&category_group_code=OL7`,{
+      const keyword = fuelType==='K015' ? 'LPG 충전소' : '주유소';
+      const catCode = fuelType==='K015' ? '' : 'OL7';
+      const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(keyword)}&x=${lng}&y=${lat}&radius=${gasRadius}&size=15&sort=distance${catCode?'&category_group_code='+catCode:''}`,{
         headers:{Authorization:`KakaoAK ${KAKAO_KEY}`}
       });
       const data = await res.json();
@@ -427,14 +435,18 @@
     try {
       const area = await reverseGeocode(lat, lng);
       if(area) {
-        const url = `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent('주유소 '+area)}&display=5&sort=random`;
+        const keyword = fuelType==='K015' ? 'LPG충전소' : '주유소';
+        const url = `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent(keyword+' '+area)}&display=5&sort=random`;
         const proxyUrl = CORS_PROXIES[0](url);
         const res = await fetch(proxyUrl, {
           headers:{'X-Naver-Client-Id':NAVER_ID, 'X-Naver-Client-Secret':NAVER_SECRET}
         });
         if(res.ok) {
           const json = await res.json();
-          const items = (json.items||[]).filter(i => (i.category||'').includes('주유소'));
+          const items = (json.items||[]).filter(i => {
+            const cat = (i.category||'').toLowerCase();
+            return cat.includes('주유') || cat.includes('충전') || cat.includes('에너지') || cat.includes('가스');
+          });
           if(items.length > 0) {
             gasData = items.map(i => {
               const brand = detectBrand(i.title.replace(/<[^>]*>/g,''));
@@ -504,6 +516,106 @@
         </div>
       </div>`;
     }).join('');
+  }
+
+  /* ── 전기차 충전소 검색 ── */
+  async function fetchEV(el, skel, threshold) {
+    // 카카오 키워드 검색
+    try {
+      const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent('전기차 충전소')}&x=${lng}&y=${lat}&radius=${gasRadius}&size=15&sort=distance`,{
+        headers:{Authorization:`KakaoAK ${KAKAO_KEY}`}
+      });
+      const data = await res.json();
+      const stations = data.documents || [];
+      if(stations.length > 0) {
+        gasData = stations.map(s => ({
+          id:s.id, name:s.place_name, brand:detectEVBrand(s.place_name),
+          price:0, dist:parseInt(s.distance)||0,
+          address:s.road_address_name||s.address_name,
+          phone:s.phone, lat:parseFloat(s.y), lng:parseFloat(s.x), isCheap:true
+        }));
+        setSourceBadge('kakao');
+        renderEVCards(el, skel);
+        return;
+      }
+    } catch(e) { console.warn('Kakao EV failed:', e); }
+
+    // 네이버 폴백
+    try {
+      const area = await reverseGeocode(lat, lng);
+      if(area) {
+        const url = `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent('전기차 충전소 '+area)}&display=5&sort=random`;
+        const proxyUrl = CORS_PROXIES[0](url);
+        const res = await fetch(proxyUrl, {
+          headers:{'X-Naver-Client-Id':NAVER_ID, 'X-Naver-Client-Secret':NAVER_SECRET}
+        });
+        if(res.ok) {
+          const json = await res.json();
+          const items = json.items || [];
+          if(items.length > 0) {
+            gasData = items.map(i => ({
+              id:i.mapx, name:i.title.replace(/<[^>]*>/g,''), brand:detectEVBrand(i.title),
+              price:0, dist:0, address:i.roadAddress||i.address||'',
+              phone:i.telephone||'', lat:null, lng:null, isCheap:true
+            }));
+            setSourceBadge('naver');
+            renderEVCards(el, skel);
+            return;
+          }
+        }
+      }
+    } catch(e) { console.warn('Naver EV failed:', e); }
+
+    skel.style.display='none'; el.style.display='block';
+    el.innerHTML = `<div class="state-box"><div class="icon">🔌</div><h3>근처 충전소를 찾을 수 없습니다</h3><p>반경을 넓혀보세요.</p><button class="state-btn" onclick="fetchGas()">다시 시도</button></div>`;
+  }
+
+  function detectEVBrand(name) {
+    const n = name||'';
+    if(n.includes('환경부')) return '환경부';
+    if(n.includes('한전')||n.includes('KEPCO')) return '한전';
+    if(n.includes('차지비')) return '차지비';
+    if(n.includes('에버온')) return '에버온';
+    if(n.includes('파워큐브')) return '파워큐브';
+    if(n.includes('SK')||n.includes('시그넷')) return 'SK시그넷';
+    if(n.includes('GS')) return 'GS';
+    if(n.includes('현대')||n.includes('제네시스')) return '현대';
+    if(n.includes('기아')) return '기아';
+    if(n.includes('테슬라')) return '테슬라';
+    return '충전소';
+  }
+
+  function renderEVCards(el, skel) {
+    skel.style.display = 'none';
+    document.getElementById('cheapCnt').textContent = gasData.length;
+    document.getElementById('totalCnt').textContent = gasData.length;
+    document.getElementById('sortBar').style.display = 'block';
+    el.style.display = 'block';
+
+    el.innerHTML = gasData.map((g, i) => `
+      <div class="gas-card cheap" style="animation-delay:${i*.04}s">
+        <div class="gas-card-body">
+          <div class="gas-header">
+            <div class="gas-name">${escHtml(g.name)}</div>
+            <span class="gas-brand brand-etc"><span class="brand-dot" style="background:#4CAF50"></span>🔌 ${escHtml(g.brand)}</span>
+          </div>
+          <div class="price-row">
+            <div class="gas-cheap-badge">⚡ 전기차 충전소</div>
+          </div>
+          ${g.dist?`<div class="info-row" style="margin-top:8px"><span class="info-icon">📍</span><span class="info-val" style="color:var(--primary);font-weight:600">${fmtDist(g.dist)}</span></div>`:''}
+          ${g.address?`<div class="info-row"><span class="info-icon">🏠</span><span class="info-val">${escHtml(g.address)}</span></div>`:''}
+          ${g.phone?`<div class="info-row"><span class="info-icon">📞</span><span class="info-val"><a href="tel:${g.phone}">${g.phone}</a></span></div>`:''}
+          <div class="nav-row">
+            <button class="nav-btn nav-kakao" onclick="navKakao('${escHtml(g.name)}',${g.lat||0},${g.lng||0},'${escHtml(g.address)}')">🟡 카카오</button>
+            <button class="nav-btn nav-naver" onclick="navNaver('${escHtml(g.name)}',${g.lat||0},${g.lng||0},'${escHtml(g.address)}')">🟢 네이버</button>
+            <button class="nav-btn nav-tmap" onclick="navTmap('${escHtml(g.name)}',${g.lat||0},${g.lng||0},'${escHtml(g.address)}')">🔵 티맵</button>
+          </div>
+        </div>
+        <div class="card-actions">
+          ${g.phone?`<button class="action-btn" onclick="call('${g.phone}')"><span class="aicon">📞</span>전화</button>`:''}
+          <button class="action-btn" onclick="shareStation('${escHtml(g.name)}',0,'${escHtml(g.address)}')"><span class="aicon">📤</span>공유</button>
+        </div>
+      </div>`).join('');
   }
 
   /* ── 브랜드 ── */
