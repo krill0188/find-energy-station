@@ -957,10 +957,10 @@
   function affCard(p) {
     let url;
     if(p.type === 'coupang') {
-      const searchUrl = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.keyword)}&channel=user`;
-      url = `https://link.coupang.com/a/${COUPANG_AFF_ID}?url=${encodeURIComponent(searchUrl)}`;
+      url = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.keyword)}&channel=user&sorter=scoreDesc&listSize=36`;
     } else {
-      url = `https://www.aliexpress.com/w/wholesale-${encodeURIComponent(p.keyword)}.html?aff_id=${ALI_AFF_ID}`;
+      const slug = p.keyword.replace(/\s+/g, '-');
+      url = `https://ko.aliexpress.com/w/wholesale-${slug}.html`;
     }
     return `
     <a class="aff-inline-card" href="${url}" target="_blank" rel="noopener">
@@ -985,9 +985,9 @@
     { name:'세차용품 세트', emoji:'🧽', from:'쿠팡', type:'coupang', keyword:'세차용품 세트' },
     { name:'차량용 방향제', emoji:'🌸', from:'쿠팡', type:'coupang', keyword:'차량용 방향제' },
     { name:'블랙박스 추천', emoji:'📹', from:'쿠팡', type:'coupang', keyword:'차량용 블랙박스' },
-    { name:'타이어 공기압 측정기', emoji:'🔧', from:'알리', type:'ali', keyword:'tire pressure gauge' },
-    { name:'LED 실내등 세트', emoji:'💡', from:'알리', type:'ali', keyword:'car interior LED light' },
-    { name:'트렁크 정리함', emoji:'📦', from:'알리', type:'ali', keyword:'car trunk organizer' },
+    { name:'타이어 공기압 측정기', emoji:'🔧', from:'알리', type:'ali', keyword:'car-tire-pressure-gauge' },
+    { name:'LED 실내등 세트', emoji:'💡', from:'알리', type:'ali', keyword:'car-interior-LED-light' },
+    { name:'트렁크 정리함', emoji:'📦', from:'알리', type:'ali', keyword:'car-trunk-organizer' },
   ];
 
   function renderAffiliates() {
@@ -995,16 +995,10 @@
     el.innerHTML = AFF_PRODUCTS.map(p => {
       let url;
       if(p.type === 'coupang') {
-        url = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.keyword)}&channel=user`;
-        // 파트너스 ID 있으면 어필리에이트 링크로 전환
-        if(COUPANG_AFF_ID !== 'AF2655185') {
-          url = `https://link.coupang.com/a/${COUPANG_AFF_ID}?url=${encodeURIComponent(url)}`;
-        }
+        url = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.keyword)}&channel=user&sorter=scoreDesc&listSize=36`;
       } else {
-        url = `https://www.aliexpress.com/w/wholesale-${encodeURIComponent(p.keyword)}.html`;
-        if(ALI_AFF_ID !== 'fmradio') {
-          url += `&aff_id=${ALI_AFF_ID}`;
-        }
+        const slug = p.keyword.replace(/\s+/g, '-');
+        url = `https://ko.aliexpress.com/w/wholesale-${slug}.html`;
       }
       return `
       <a class="aff-card" href="${url}" target="_blank" rel="noopener">
