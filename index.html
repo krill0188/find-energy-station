@@ -984,11 +984,13 @@
     const link = e.target.closest('.ext-link');
     if(!link) return;
     e.preventDefault();
+    e.stopPropagation();
+    const href = link.getAttribute('href');
     if(isTelegram) {
-      // 텔레그램: 같은 창에서 이동
-      location.href = link.href;
+      // 텔레그램: 외부 브라우저로 열기
+      window.location.assign(href);
     } else {
-      window.open(link.href, '_blank');
+      window.open(href, '_blank', 'noopener');
     }
   });
 
