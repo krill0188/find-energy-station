@@ -246,6 +246,31 @@
     .footer { text-align:center; padding:20px 16px 80px; font-size:11px; color:var(--text-muted); line-height:1.6; }
     .footer a { color:var(--primary); text-decoration:none; }
 
+    /* ── 가이드 배너 ── */
+    .guide-banner {
+      margin:8px 12px;
+      padding:14px 16px;
+      border-radius:14px;
+      background:linear-gradient(135deg, #1B5E20 0%, #4CAF50 50%, #81C784 100%);
+      color:#fff;
+      position:relative;
+      overflow:hidden;
+      animation:guideSlideIn .5s ease;
+    }
+    @keyframes guideSlideIn { from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)} }
+    .guide-banner::before {
+      content:''; position:absolute; top:-20px; right:-10px;
+      width:80px; height:80px; background:rgba(255,255,255,.1); border-radius:50%;
+    }
+    .guide-banner .guide-icon { font-size:20px; margin-bottom:4px; }
+    .guide-banner .guide-title { font-size:14px; font-weight:800; margin-bottom:4px; }
+    .guide-banner .guide-desc { font-size:12px; opacity:.9; line-height:1.5; }
+    .guide-banner .guide-highlight { background:rgba(255,255,255,.2); padding:2px 8px; border-radius:8px; font-weight:700; }
+    .guide-banner .guide-close { position:absolute; top:8px; right:10px; background:none; border:none; color:rgba(255,255,255,.7); font-size:18px; cursor:pointer; }
+    .guide-banner .guide-close:active { color:#fff; }
+    .guide-banner .guide-arrow { display:inline-block; animation:bounce 1.5s infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)} }
+
     /* ── 위치 권한 안내 ── */
     .loc-permission { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
     .loc-perm-box { background:var(--card); border-radius:20px; padding:28px 24px; max-width:340px; width:100%; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,.2); }
@@ -350,6 +375,17 @@
       <input class="price-input" type="number" id="priceThreshold" value="1900" step="50" min="1000" max="3000" onchange="fetchGas()">
       <span class="price-unit">원/L 이하만 표시</span>
     </div>
+  </div>
+</div>
+
+<div class="guide-banner" id="guideBanner">
+  <button class="guide-close" onclick="dismissGuide()">✕</button>
+  <div class="guide-icon"><span class="guide-arrow">👆</span> 알고 계셨나요?</div>
+  <div class="guide-title">기준가를 직접 조정할 수 있어요!</div>
+  <div class="guide-desc">
+    위 <span class="guide-highlight">기준가</span> 금액을 터치하면<br>
+    원하는 가격으로 변경할 수 있습니다.<br>
+    기준가 이하 = 💚 착한가격 표시
   </div>
 </div>
 
@@ -975,6 +1011,16 @@
       try { await navigator.share({title:'착한주유소 - '+name, text}); return; } catch(e){}
     }
     navigator.clipboard?.writeText(text).then(() => alert('📋 복사됨!'));
+  }
+
+  /* ── 가이드 배너 ── */
+  if(localStorage.getItem('guideDismissed')) {
+    const gb = document.getElementById('guideBanner');
+    if(gb) gb.style.display = 'none';
+  }
+  function dismissGuide() {
+    document.getElementById('guideBanner').style.display = 'none';
+    localStorage.setItem('guideDismissed', '1');
   }
 
   /* ── 외부 링크 처리 (텔레그램 인앱 브라우저 대응) ── */
