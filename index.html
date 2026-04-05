@@ -366,7 +366,7 @@
 
 <!-- 쿠팡 파트너스 배너 -->
 <div style="text-align:center;padding:12px">
-  <a href="https://link.coupang.com/a/eh8PUz" target="_blank" rel="noopener" referrerpolicy="unsafe-url">
+  <a href="https://link.coupang.com/a/eh8PUz" class="ext-link">
     <img src="https://ads-partners.coupang.com/banners/978069?subId=&traceId=V0-301-c1744fa69c93f626-I978069&w=320&h=100" alt="쿠팡 자동차용품" style="max-width:100%;border-radius:12px;">
   </a>
 </div>
@@ -959,6 +959,21 @@
     navigator.clipboard?.writeText(text).then(() => alert('📋 복사됨!'));
   }
 
+  /* ── 외부 링크 처리 (텔레그램 인앱 브라우저 대응) ── */
+  const isTelegram = /Telegram/i.test(navigator.userAgent);
+
+  document.addEventListener('click', e => {
+    const link = e.target.closest('.ext-link');
+    if(!link) return;
+    e.preventDefault();
+    if(isTelegram) {
+      // 텔레그램: 같은 창에서 이동
+      location.href = link.href;
+    } else {
+      window.open(link.href, '_blank');
+    }
+  });
+
   /* ── 리스트 사이 제휴 삽입 ── */
   function getAffInsert(idx) {
     const pair = Math.floor(idx / 3) % Math.floor(AFF_PRODUCTS.length / 2);
@@ -976,7 +991,7 @@
       url = `https://ko.aliexpress.com/w/wholesale-${slug}.html`;
     }
     return `
-    <a class="aff-inline-card" href="${url}" target="_blank" rel="noopener" referrerpolicy="unsafe-url">
+    <a class="aff-inline-card ext-link" href="${url}">
       <div class="aff-inline-top">
         <div class="aff-inline-emoji">${p.emoji}</div>
         <div class="aff-inline-info">
@@ -1017,7 +1032,7 @@
         url = `https://ko.aliexpress.com/w/wholesale-${slug}.html`;
       }
       return `
-      <a class="aff-card" href="${url}" target="_blank" rel="noopener">
+      <a class="aff-card ext-link" href="${url}">
         <div class="aff-card-img ${p.type==='coupang'?'coupang':'ali'}">${p.emoji}</div>
         <div class="aff-card-body">
           <div class="aff-card-name">${escHtml(p.name)}</div>
