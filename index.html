@@ -808,19 +808,30 @@
         icon: { content: markerHtml, anchor: new naver.maps.Point(40, 14) }
       });
 
-      const cleanName = cleanStationName(g.name || '');
-      const eName = encodeURIComponent(cleanName || g.address || g.name || '');
+      // 검색 쿼리 우선순위: 주소 > 정제된 상호 > 원본 상호
+      // 카카오/티맵은 주소 검색이 가장 정확
+      const searchQuery = g.address || cleanStationName(g.name || '') || g.name || '';
+      const eQuery = encodeURIComponent(searchQuery);
+      // 카카오 좌표 기반 길안내 (가장 정확)
+      const kakaoUrl = (g.lat && g.lng)
+        ? `https://map.kakao.com/link/to/${encodeURIComponent(g.name||'주유소')},${g.lat},${g.lng}`
+        : `https://map.kakao.com/link/search/${eQuery}`;
+      const naverUrl = (g.lat && g.lng)
+        ? `https://map.naver.com/p/directions/-/${g.lng},${g.lat},${encodeURIComponent(g.name||'주유소')},,PLACE_POI/-/transit`
+        : `https://map.naver.com/v5/search/${eQuery}`;
+      const tmapUrl = `https://tmap.life/search?query=${eQuery}`;
+
       const infoHtml = `
-        <div style="padding:12px;font-size:13px;max-width:250px;font-family:-apple-system,sans-serif;line-height:1.5">
-          <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#111">${(g.name||'').replace(/</g,'&lt;')}</div>
-          ${g.brand ? `<div style="color:#666;margin-bottom:4px">${g.brand}</div>` : ''}
+        <div style="padding:14px;font-size:13px;width:280px;box-sizing:border-box;font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;line-height:1.5">
+          <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#111;word-break:keep-all">${(g.name||'').replace(/</g,'&lt;')}</div>
+          ${g.brand ? `<div style="color:#666;margin-bottom:4px;font-size:12px">${g.brand}</div>` : ''}
           ${g.price ? `<div style="color:${isCheap?'#10B981':'#6B7280'};font-weight:700;font-size:15px;margin:6px 0">💰 ${g.price.toLocaleString()}원/L</div>` : ''}
           ${g.dist ? `<div style="color:#888;font-size:12px">📍 ${g.dist < 1000 ? g.dist+'m' : (g.dist/1000).toFixed(1)+'km'}</div>` : ''}
-          ${g.address ? `<div style="color:#888;font-size:12px;margin-top:4px">🏠 ${(g.address||'').replace(/</g,'&lt;')}</div>` : ''}
-          <div style="display:flex;gap:6px;margin-top:8px">
-            <a href="https://map.kakao.com/link/search/${eName}" target="_blank" style="flex:1;text-align:center;padding:6px 0;border-radius:8px;background:#FEE500;color:#3C1E1E;font-size:11px;font-weight:700;text-decoration:none">카카오</a>
-            <a href="https://map.naver.com/v5/search/${eName}" target="_blank" style="flex:1;text-align:center;padding:6px 0;border-radius:8px;background:#03C75A;color:#fff;font-size:11px;font-weight:700;text-decoration:none">네이버</a>
-            <a href="https://tmap.life/search?query=${eName}" target="_blank" style="flex:1;text-align:center;padding:6px 0;border-radius:8px;background:#2B6CB0;color:#fff;font-size:11px;font-weight:700;text-decoration:none">티맵</a>
+          ${g.address ? `<div style="color:#888;font-size:12px;margin-top:4px;word-break:keep-all">🏠 ${(g.address||'').replace(/</g,'&lt;')}</div>` : ''}
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <a href="${kakaoUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#FEE500;color:#3C1E1E;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;letter-spacing:-0.3px">카카오</a>
+            <a href="${naverUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#03C75A;color:#fff;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;letter-spacing:-0.3px">네이버</a>
+            <a href="${tmapUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#2B6CB0;color:#fff;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;letter-spacing:-0.3px">티맵</a>
           </div>
         </div>`;
       const infoWindow = new naver.maps.InfoWindow({
@@ -828,7 +839,10 @@
         borderWidth: 0,
         disableAnchor: false,
         backgroundColor: '#fff',
-        borderColor: '#e5e5e5'
+        borderColor: '#e5e5e5',
+        anchorSize: new naver.maps.Size(12, 12),
+        pixelOffset: new naver.maps.Point(0, -4),
+        maxWidth: 320
       });
       naver.maps.Event.addListener(marker, 'click', () => {
         if(openInfoWindow) openInfoWindow.close();
@@ -1433,22 +1447,27 @@
 
   // 주유소 상호에서 브랜드/운영 접두사 제거 → 카카오/네이버 검색 정확도 향상
   // 예: "HD현대오일뱅크㈜직영 양벌현대주유소" → "양벌현대주유소"
+  // 주의: "(주)오일플라자"처럼 회사명 자체에 (주)가 있는 경우는 그대로 유지
   function cleanStationName(name) {
     if(!name) return '';
     let s = String(name);
-    // 브랜드 접두사 패턴 (공백 포함)
+    // 브랜드명 + 직영/대리점 + 공백이 있어야만 접두사로 인식 (뒤에 실제 상호가 따라와야 함)
     const prefixes = [
-      /^HD현대오일뱅크\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
-      /^현대오일뱅크\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
-      /^SK에너지\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
-      /^S-OIL\s*[㈜(주)]*\s*(직영|대리점)?\s*/i,
-      /^에쓰오일\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
-      /^GS칼텍스\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
-      /^알뜰주유소\s*/,
-      /^농협주유소\s*/,
-      /^[㈜(주)]+\s*/,
+      /^HD현대오일뱅크\s*[㈜(주)]*\s*(직영|대리점)\s+/,
+      /^현대오일뱅크\s*[㈜(주)]*\s*(직영|대리점)\s+/,
+      /^SK에너지\s*[㈜(주)]*\s*(직영|대리점)\s+/,
+      /^S-?OIL\s*[㈜(주)]*\s*(직영|대리점)\s+/i,
+      /^에쓰오일\s*[㈜(주)]*\s*(직영|대리점)\s+/,
+      /^GS칼텍스\s*[㈜(주)]*\s*(직영|대리점)\s+/,
     ];
-    for(const re of prefixes) s = s.replace(re, '');
+    for(const re of prefixes) {
+      const result = s.replace(re, '');
+      // 정제 후 결과가 너무 짧아지면(2글자 미만) 원본 유지
+      if(result !== s && result.length >= 2) {
+        s = result;
+        break;
+      }
+    }
     return s.trim();
   }
 
@@ -1458,29 +1477,45 @@
     document.getElementById('gasList').innerHTML = `<div class="state-box"><div class="icon">😕</div><h3>${t}</h3><p>${m}</p><button class="state-btn" onclick="init()">다시 시도</button></div>`;
   }
 
-  /* ── 길안내 (주소 기반) ── */
+  /* ── 길안내: 좌표 우선, 폴백은 주소 검색 ── */
   function navKakao(name, dlat, dlng, addr) {
-    // 카카오: 주소로 검색 → 길안내
-    const q = addr || name;
-    window.open(`https://map.kakao.com/link/search/${encodeURIComponent(q)}`);
+    if(dlat && dlng) {
+      // 좌표 기반 길안내 (가장 정확)
+      window.open(`https://map.kakao.com/link/to/${encodeURIComponent(name)},${dlat},${dlng}`);
+    } else {
+      // 주소 또는 정제된 상호로 검색
+      const q = addr || cleanStationName(name) || name;
+      window.open(`https://map.kakao.com/link/search/${encodeURIComponent(q)}`);
+    }
   }
 
   function navNaver(name, dlat, dlng, addr) {
-    const q = addr || name;
-    if(isMobile()) {
-      location.href = `nmap://search?query=${encodeURIComponent(q)}&appname=find-energy-station`;
-      setTimeout(() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`), 1500);
+    if(dlat && dlng) {
+      // 좌표 기반 길안내
+      if(isMobile()) {
+        location.href = `nmap://route/car?dlat=${dlat}&dlng=${dlng}&dname=${encodeURIComponent(name)}&appname=find-energy-station`;
+        setTimeout(() => window.open(`https://map.naver.com/v5/directions/-/-/-/-/car?destination=${encodeURIComponent(name)}@${dlng},${dlat}`), 1500);
+      } else {
+        window.open(`https://map.naver.com/v5/directions/-/-/-/-/car?destination=${encodeURIComponent(name)}@${dlng},${dlat}`);
+      }
     } else {
-      window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`);
+      const q = addr || cleanStationName(name) || name;
+      if(isMobile()) {
+        location.href = `nmap://search?query=${encodeURIComponent(q)}&appname=find-energy-station`;
+        setTimeout(() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`), 1500);
+      } else {
+        window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`);
+      }
     }
   }
 
   function navTmap(name, dlat, dlng, addr) {
-    const q = addr || name;
-    if(isMobile()) {
-      location.href = `tmap://search?name=${encodeURIComponent(q)}`;
-      setTimeout(() => window.open(`https://tmap.life/search?query=${encodeURIComponent(q)}`), 1500);
+    if(dlat && dlng && isMobile()) {
+      // 티맵 좌표 기반 길안내 딥링크
+      location.href = `tmap://route?goalname=${encodeURIComponent(name)}&goalx=${dlng}&goaly=${dlat}`;
+      setTimeout(() => window.open(`https://tmap.life/search?query=${encodeURIComponent(addr || name)}`), 1500);
     } else {
+      const q = addr || cleanStationName(name) || name;
       window.open(`https://tmap.life/search?query=${encodeURIComponent(q)}`);
     }
   }
