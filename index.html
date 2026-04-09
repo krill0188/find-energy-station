@@ -808,18 +808,10 @@
         icon: { content: markerHtml, anchor: new naver.maps.Point(40, 14) }
       });
 
-      // 검색 쿼리 우선순위: 주소 > 정제된 상호 > 원본 상호
-      // 카카오/티맵은 주소 검색이 가장 정확
-      const searchQuery = g.address || cleanStationName(g.name || '') || g.name || '';
-      const eQuery = encodeURIComponent(searchQuery);
-      // 카카오 좌표 기반 길안내 (가장 정확)
-      const kakaoUrl = (g.lat && g.lng)
-        ? `https://map.kakao.com/link/to/${encodeURIComponent(g.name||'주유소')},${g.lat},${g.lng}`
-        : `https://map.kakao.com/link/search/${eQuery}`;
-      const naverUrl = (g.lat && g.lng)
-        ? `https://map.naver.com/p/directions/-/${g.lng},${g.lat},${encodeURIComponent(g.name||'주유소')},,PLACE_POI/-/transit`
-        : `https://map.naver.com/v5/search/${eQuery}`;
-      const tmapUrl = `https://tmap.life/search?query=${eQuery}`;
+      // 인포윈도우 버튼: 카드와 동일한 nav 함수 호출 (딥링크 + 웹 폴백 통합)
+      const safeName = (g.name||'').replace(/'/g,"\\'");
+      const safeAddr = (g.address||'').replace(/'/g,"\\'");
+      const navArgs = `'${safeName}',${g.lat||0},${g.lng||0},'${safeAddr}'`;
 
       const infoHtml = `
         <div style="padding:14px;font-size:13px;width:280px;box-sizing:border-box;font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;line-height:1.5">
@@ -829,9 +821,9 @@
           ${g.dist ? `<div style="color:#888;font-size:12px">📍 ${g.dist < 1000 ? g.dist+'m' : (g.dist/1000).toFixed(1)+'km'}</div>` : ''}
           ${g.address ? `<div style="color:#888;font-size:12px;margin-top:4px;word-break:keep-all">🏠 ${(g.address||'').replace(/</g,'&lt;')}</div>` : ''}
           <div style="display:flex;gap:6px;margin-top:10px">
-            <a href="${kakaoUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#FEE500;color:#3C1E1E;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;letter-spacing:-0.3px">카카오</a>
-            <a href="${naverUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#03C75A;color:#fff;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;letter-spacing:-0.3px">네이버</a>
-            <a href="${tmapUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#2B6CB0;color:#fff;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;letter-spacing:-0.3px">티맵</a>
+            <button onclick="navKakao(${navArgs})" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#FEE500;color:#3C1E1E;font-size:12px;font-weight:700;border:none;cursor:pointer;white-space:nowrap;letter-spacing:-0.3px;font-family:inherit">카카오</button>
+            <button onclick="navNaver(${navArgs})" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#03C75A;color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;white-space:nowrap;letter-spacing:-0.3px;font-family:inherit">네이버</button>
+            <button onclick="navTmap(${navArgs})" style="flex:1;text-align:center;padding:8px 0;border-radius:8px;background:#2B6CB0;color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;white-space:nowrap;letter-spacing:-0.3px;font-family:inherit">티맵</button>
           </div>
         </div>`;
       const infoWindow = new naver.maps.InfoWindow({
@@ -1490,34 +1482,65 @@
   }
 
   function navNaver(name, dlat, dlng, addr) {
+    const eName = encodeURIComponent(name || '주유소');
     if(dlat && dlng) {
-      // 좌표 기반 길안내
       if(isMobile()) {
-        location.href = `nmap://route/car?dlat=${dlat}&dlng=${dlng}&dname=${encodeURIComponent(name)}&appname=find-energy-station`;
-        setTimeout(() => window.open(`https://map.naver.com/v5/directions/-/-/-/-/car?destination=${encodeURIComponent(name)}@${dlng},${dlat}`), 1500);
+        // 모바일: 네이버 지도 앱 딥링크 → 실패 시 웹 폴백
+        const deeplink = `nmap://route/car?dlat=${dlat}&dlng=${dlng}&dname=${eName}&appname=krill0188.github.io`;
+        const webFallback = `https://map.naver.com/p/directions/-/-/${dlng},${dlat},${eName},,PLACE_POI/-/car`;
+        tryDeeplink(deeplink, webFallback);
       } else {
-        window.open(`https://map.naver.com/v5/directions/-/-/-/-/car?destination=${encodeURIComponent(name)}@${dlng},${dlat}`);
+        // 데스크톱: 모던 웹 지도 검색 (좌표 기반)
+        window.open(`https://map.naver.com/p/search/${eName}?c=${dlng},${dlat},17,0,0,0,dh`, '_blank');
       }
     } else {
       const q = addr || cleanStationName(name) || name;
+      const eq = encodeURIComponent(q);
       if(isMobile()) {
-        location.href = `nmap://search?query=${encodeURIComponent(q)}&appname=find-energy-station`;
-        setTimeout(() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`), 1500);
+        tryDeeplink(`nmap://search?query=${eq}&appname=krill0188.github.io`, `https://map.naver.com/p/search/${eq}`);
       } else {
-        window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`);
+        window.open(`https://map.naver.com/p/search/${eq}`, '_blank');
       }
     }
   }
 
   function navTmap(name, dlat, dlng, addr) {
-    if(dlat && dlng && isMobile()) {
-      // 티맵 좌표 기반 길안내 딥링크
-      location.href = `tmap://route?goalname=${encodeURIComponent(name)}&goalx=${dlng}&goaly=${dlat}`;
-      setTimeout(() => window.open(`https://tmap.life/search?query=${encodeURIComponent(addr || name)}`), 1500);
+    const eName = encodeURIComponent(name || '주유소');
+    if(isMobile()) {
+      // T맵은 모바일 앱 전용 (공식 웹지도 없음)
+      if(dlat && dlng) {
+        // 좌표 기반 길안내 딥링크
+        const deeplink = `tmap://route?goalname=${eName}&goalx=${dlng}&goaly=${dlat}`;
+        // 폴백: 앱이 없으면 스토어로
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        const storeUrl = isIOS
+          ? 'https://apps.apple.com/kr/app/t맵/id431589174'
+          : 'https://play.google.com/store/apps/details?id=com.skt.tmap.ku';
+        tryDeeplink(deeplink, storeUrl);
+      } else {
+        const q = addr || cleanStationName(name) || name;
+        tryDeeplink(`tmap://search?name=${encodeURIComponent(q)}`, '');
+      }
     } else {
-      const q = addr || cleanStationName(name) || name;
-      window.open(`https://tmap.life/search?query=${encodeURIComponent(q)}`);
+      // 데스크톱: T맵 공식 사이트는 길안내 웹 미지원 → 카카오로 폴백
+      showToast('💡 T맵은 모바일 앱 전용입니다. 카카오로 길안내 열기...');
+      setTimeout(() => navKakao(name, dlat, dlng, addr), 800);
     }
+  }
+
+  // 딥링크 시도 + 폴백 (앱이 없으면 fallback URL 열기)
+  function tryDeeplink(deeplink, fallbackUrl) {
+    let timeout;
+    const onVisChange = () => {
+      // 앱이 열려 페이지가 백그라운드로 가면 visibility 변경됨
+      if(document.hidden) clearTimeout(timeout);
+    };
+    document.addEventListener('visibilitychange', onVisChange, { once: true });
+    timeout = setTimeout(() => {
+      document.removeEventListener('visibilitychange', onVisChange);
+      if(fallbackUrl) window.open(fallbackUrl, '_blank');
+    }, 1800);
+    location.href = deeplink;
   }
 
   function isMobile() {
