@@ -322,6 +322,43 @@
       .list { grid-template-columns:repeat(4,1fr); }
       .skeleton-list { grid-template-columns:repeat(4,1fr); }
     }
+
+    /* ── Naver 지도 통합 ── */
+    .view-toggle-bar { padding: 8px 16px 0; }
+    .view-toggle-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(16,185,129,0.35);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .view-toggle-btn:active { transform: scale(0.97); }
+    .view-toggle-btn:hover { box-shadow: 0 4px 14px rgba(16,185,129,0.45); }
+    #mapArea {
+      margin: 12px 16px 0;
+      height: 440px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      background: #f5f5f5;
+      position: relative;
+    }
+    #naverMap { width: 100%; height: 100%; }
+    .map-loading {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: #666; background: #f5f5f5;
+      pointer-events: none;
+    }
+    @media (min-width:768px) {
+      #mapArea { height: 520px; margin: 12px 32px 0; }
+    }
   </style>
 </head>
 <body>
@@ -397,6 +434,14 @@
 
 <div class="sort-bar" id="sortBar">
   💚 착한가격 <b id="cheapCnt">0</b>곳 · 총 <span id="totalCnt">0</span>곳 표시 (기준가+50원) · 가격순
+</div>
+
+<div class="view-toggle-bar">
+  <button id="viewToggle" class="view-toggle-btn" onclick="toggleView()">🗺️ 지도보기</button>
+</div>
+
+<div id="mapArea" style="display:none">
+  <div id="naverMap"></div>
 </div>
 
 <div id="skeletonArea" class="skeleton-list">
@@ -491,6 +536,7 @@
   const NAVER_ID = _d('RHlUNmZWUkp5THk1MERGeU9FT2c=');
   const NAVER_SECRET = _d('M3F2Y2J3VU04SA==');
   const OPINET_KEY = _d('RjI2MDQwNDc3MQ==');
+  const NCP_MAP_ID = _d('eTk1bHoxcGNndg==');  // Naver Cloud Platform 지도 Client ID (minerqnamaps)
 
   const CORS_PROXIES = [
     url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
@@ -500,6 +546,168 @@
 
   let lat=null, lng=null, gasData=[];
   let locMode='gps', searchTimer=null, fuelType='B027', gasRadius=5000;
+
+  // ── Naver Maps 상태 ──
+  let naverMap=null, naverMarkers=[], naverUserMarker=null, naverMapLoaded=false;
+  let currentView='list'; // 'list' | 'map'
+  let openInfoWindow=null;
+
+  function loadNaverMapScript() {
+    return new Promise((resolve, reject) => {
+      if(window.naver && window.naver.maps) { resolve(); return; }
+      const existing = document.querySelector('script[data-naver-map]');
+      if(existing) { existing.addEventListener('load', resolve); return; }
+      const script = document.createElement('script');
+      script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${NCP_MAP_ID}`;
+      script.dataset.naverMap = '1';
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Naver Maps 스크립트 로드 실패'));
+      document.head.appendChild(script);
+    });
+  }
+
+  async function initNaverMap() {
+    if(naverMap) return naverMap;
+    try {
+      await loadNaverMapScript();
+    } catch(e) {
+      console.error(e);
+      document.getElementById('mapArea').innerHTML = '<div class="map-loading">❌ 지도 로드 실패<br>잠시 후 다시 시도해주세요</div>';
+      return null;
+    }
+    const centerLat = lat || 37.5665, centerLng = lng || 126.9780;
+    naverMap = new naver.maps.Map('naverMap', {
+      center: new naver.maps.LatLng(centerLat, centerLng),
+      zoom: 14,
+      minZoom: 10,
+      zoomControl: true,
+      zoomControlOptions: {
+        position: naver.maps.Position.TOP_RIGHT,
+        style: naver.maps.ZoomControlStyle.SMALL
+      },
+      scaleControl: false,
+      logoControl: true,
+      mapDataControl: false
+    });
+    naverMapLoaded = true;
+    return naverMap;
+  }
+
+  function clearNaverMarkers() {
+    naverMarkers.forEach(m => m.setMap(null));
+    naverMarkers = [];
+    if(naverUserMarker) { naverUserMarker.setMap(null); naverUserMarker=null; }
+    if(openInfoWindow) { openInfoWindow.close(); openInfoWindow=null; }
+  }
+
+  function renderNaverMarkers() {
+    if(!naverMap || !window.naver) return;
+    clearNaverMarkers();
+
+    // 내 위치 마커
+    if(lat && lng) {
+      naverUserMarker = new naver.maps.Marker({
+        position: new naver.maps.LatLng(lat, lng),
+        map: naverMap,
+        zIndex: 1000,
+        icon: {
+          content: '<div style="background:#4A90E2;color:#fff;padding:6px 10px;border-radius:20px;font-size:11px;font-weight:700;box-shadow:0 2px 8px rgba(74,144,226,0.5);border:2px solid #fff;white-space:nowrap;">📍 내 위치</div>',
+          anchor: new naver.maps.Point(35, 15)
+        }
+      });
+    }
+
+    // 주유소/충전소 마커
+    const bounds = new naver.maps.LatLngBounds();
+    if(lat && lng) bounds.extend(new naver.maps.LatLng(lat, lng));
+
+    gasData.forEach((g, i) => {
+      if(!g.lat || !g.lng) return;
+      const isCheap = !!g.isCheap;
+      const priceStr = g.price ? `${g.price.toLocaleString()}원` : (g.brand || '');
+      const bg = isCheap ? 'linear-gradient(135deg,#10B981,#059669)' : '#6B7280';
+      const icon = isCheap ? '💚' : (fuelType === 'EV' ? '⚡' : '⛽');
+      const markerHtml = `<div style="background:${bg};color:#fff;padding:5px 9px;border-radius:16px;font-size:11px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap;border:2px solid #fff;">${icon} ${priceStr}</div>`;
+
+      const marker = new naver.maps.Marker({
+        position: new naver.maps.LatLng(g.lat, g.lng),
+        map: naverMap,
+        title: g.name,
+        icon: { content: markerHtml, anchor: new naver.maps.Point(40, 14) }
+      });
+
+      const infoHtml = `
+        <div style="padding:12px;font-size:13px;max-width:230px;font-family:-apple-system,sans-serif;line-height:1.5">
+          <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#111">${(g.name||'').replace(/</g,'&lt;')}</div>
+          ${g.brand ? `<div style="color:#666;margin-bottom:4px">${g.brand}</div>` : ''}
+          ${g.price ? `<div style="color:${isCheap?'#10B981':'#6B7280'};font-weight:700;font-size:15px;margin:6px 0">💰 ${g.price.toLocaleString()}원/L</div>` : ''}
+          ${g.dist ? `<div style="color:#888;font-size:12px">📍 ${g.dist < 1000 ? g.dist+'m' : (g.dist/1000).toFixed(1)+'km'}</div>` : ''}
+          ${g.address ? `<div style="color:#888;font-size:12px;margin-top:4px">🏠 ${(g.address||'').replace(/</g,'&lt;')}</div>` : ''}
+        </div>`;
+      const infoWindow = new naver.maps.InfoWindow({
+        content: infoHtml,
+        borderWidth: 0,
+        disableAnchor: false,
+        backgroundColor: '#fff',
+        borderColor: '#e5e5e5'
+      });
+      naver.maps.Event.addListener(marker, 'click', () => {
+        if(openInfoWindow) openInfoWindow.close();
+        infoWindow.open(naverMap, marker);
+        openInfoWindow = infoWindow;
+      });
+
+      naverMarkers.push(marker);
+      bounds.extend(new naver.maps.LatLng(g.lat, g.lng));
+    });
+
+    // 모든 마커가 들어오도록 화면 조정
+    if(naverMarkers.length > 0) {
+      try { naverMap.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 }); } catch(e) {}
+    } else if(lat && lng) {
+      naverMap.setCenter(new naver.maps.LatLng(lat, lng));
+    }
+  }
+
+  async function toggleView() {
+    const listEl = document.getElementById('gasList');
+    const skelEl = document.getElementById('skeletonArea');
+    const mapEl = document.getElementById('mapArea');
+    const btnEl = document.getElementById('viewToggle');
+
+    if(currentView === 'list') {
+      // 리스트 → 지도
+      listEl.style.display = 'none';
+      skelEl.style.display = 'none';
+      mapEl.style.display = 'block';
+      btnEl.textContent = '📋 리스트보기';
+      currentView = 'map';
+
+      const map = await initNaverMap();
+      if(map) {
+        // 컨테이너 크기 반영
+        naver.maps.Event.trigger(map, 'resize');
+        renderNaverMarkers();
+      }
+    } else {
+      // 지도 → 리스트
+      mapEl.style.display = 'none';
+      if(gasData.length > 0 || document.getElementById('gasList').innerHTML) {
+        listEl.style.display = 'block';
+      } else {
+        skelEl.style.display = 'block';
+      }
+      btnEl.textContent = '🗺️ 지도보기';
+      currentView = 'list';
+    }
+  }
+
+  // gasData 업데이트 시 자동으로 마커도 갱신되도록 훅
+  function refreshMapIfVisible() {
+    if(currentView === 'map' && naverMap) {
+      renderNaverMarkers();
+    }
+  }
 
   async function fetchWithProxy(url, idx=0) {
     if(idx >= CORS_PROXIES.length) throw new Error('All proxies failed');
@@ -722,6 +930,7 @@
       }
     });
     el.innerHTML = html;
+    refreshMapIfVisible();
   }
 
   /* ── 전기차 충전소 검색 ── */
@@ -822,6 +1031,7 @@
           <button class="action-btn" onclick="shareStation('${escHtml(g.name)}',0,'${escHtml(g.address)}')"><span class="aicon">📤</span>공유</button>
         </div>
       </div>`).join('');
+    refreshMapIfVisible();
   }
 
   /* ── 브랜드 ── */
