@@ -1,18 +1,19 @@
 {
-  "name": "착한주유소",
+  "name": "착한주유소 - 실시간 유가 비교",
   "short_name": "착한주유소",
-  "description": "내 주변 가장 저렴한 주유소 찾기 - 실시간 유가 비교, 길안내 연동",
-  "start_url": "./index.html",
+  "description": "내 주변 가장 저렴한 주유소를 찾아보세요. 오피넷 실시간 유가, 길안내 연동, 즐겨찾기 지원.",
+  "start_url": "./index.html?source=pwa",
   "scope": "./",
-  "id": "find-energy-station",
+  "id": "/find-energy-station/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#F1F8E9",
   "theme_color": "#1B5E20",
   "orientation": "portrait-primary",
   "lang": "ko",
   "dir": "ltr",
-  "categories": ["utilities", "navigation"],
+  "categories": ["utilities", "navigation", "travel"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icon-32.png",
@@ -48,5 +49,53 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "휘발유 검색",
+      "short_name": "휘발유",
+      "description": "주변 휘발유 주유소 검색",
+      "url": "./index.html?fuel=B027&source=shortcut",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "경유 검색",
+      "short_name": "경유",
+      "description": "주변 경유 주유소 검색",
+      "url": "./index.html?fuel=D047&source=shortcut",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "LPG 검색",
+      "short_name": "LPG",
+      "description": "주변 LPG 충전소 검색",
+      "url": "./index.html?fuel=K015&source=shortcut",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "전기차 충전소",
+      "short_name": "EV",
+      "description": "주변 전기차 충전소 검색",
+      "url": "./index.html?fuel=EV&source=shortcut",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "주유소 가격 비교 화면"
+    }
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

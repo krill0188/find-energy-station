@@ -37,12 +37,39 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="shortcut icon" href="favicon.ico">
 
-  <!-- iOS -->
+  <!-- iOS 아이콘 -->
   <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
-  <link rel="apple-touch-startup-image" href="icon-512.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+
+  <!-- iOS 스플래시 스크린 (디바이스별 최적화) -->
+  <link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)">
+  <link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)">
+  <link rel="apple-touch-startup-image" href="icon-512.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)">
+
+  <!-- 추가 PWA 메타 -->
+  <meta name="format-detection" content="telephone=no">
+  <meta name="HandheldFriendly" content="true">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#1B5E20" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E1A0E" media="(prefers-color-scheme: dark)">
 
   <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json">
+
+  <!-- 외부 도메인 미리 연결 (성능 최적화) -->
+  <link rel="dns-prefetch" href="https://www.opinet.co.kr">
+  <link rel="dns-prefetch" href="https://oapi.map.naver.com">
+  <link rel="dns-prefetch" href="https://dapi.kakao.com">
+  <link rel="dns-prefetch" href="https://corsproxy.io">
+  <link rel="preconnect" href="https://www.opinet.co.kr" crossorigin>
+  <link rel="preconnect" href="https://oapi.map.naver.com" crossorigin>
   <style>
     :root {
       --primary: #2E7D32;
@@ -61,10 +88,24 @@
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg:#121212; --card:#1E1E1E; --text:#E8F5E9; --text-muted:#81C784;
-        --border:#333; --shadow:0 2px 16px rgba(0,0,0,.5);
-        --primary:#4CAF50; --primary-light:#66BB6A; --primary-dark:#2E7D32;
+        --bg:#0E1A0E; --card:#1E2A1E; --text:#E8F5E9; --text-muted:#A5D6A7;
+        --border:#2A3A2A; --shadow:0 4px 20px rgba(0,0,0,.6);
+        --primary:#66BB6A; --primary-light:#81C784; --primary-dark:#388E3C;
+        --accent:#FFA726; --cheap:#66BB6A; --over:#EF5350;
       }
+    }
+    /* 사용자 수동 다크/라이트 모드 (data-theme 속성) */
+    html[data-theme="dark"] {
+      --bg:#0E1A0E; --card:#1E2A1E; --text:#E8F5E9; --text-muted:#A5D6A7;
+      --border:#2A3A2A; --shadow:0 4px 20px rgba(0,0,0,.6);
+      --primary:#66BB6A; --primary-light:#81C784; --primary-dark:#388E3C;
+      --accent:#FFA726; --cheap:#66BB6A; --over:#EF5350;
+    }
+    html[data-theme="light"] {
+      --bg:#F1F8E9; --card:#FFFFFF; --text:#1A1A1A; --text-muted:#6C757D;
+      --border:#E0E0E0; --shadow:0 2px 16px rgba(0,0,0,0.08);
+      --primary:#2E7D32; --primary-light:#4CAF50; --primary-dark:#1B5E20;
+      --accent:#FF6D00; --cheap:#1B5E20; --over:#D32F2F;
     }
     * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
     body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding-bottom:calc(20px + env(safe-area-inset-bottom)); -webkit-user-select:none; -moz-user-select:none; user-select:none; }
@@ -86,8 +127,102 @@
     }
     .header-top { display:flex; align-items:center; gap:10px; position:relative; z-index:1; }
     .header-logo { font-size:32px; }
+    .header-text { flex:1; }
     .header-text h1 { font-size:22px; font-weight:800; letter-spacing:-0.5px; }
     .header-text .tagline { font-size:12px; opacity:.85; margin-top:2px; font-weight:500; }
+    .header-actions { display:flex; gap:6px; align-items:center; }
+    .header-icon-btn {
+      background:rgba(255,255,255,0.18);
+      backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,0.25);
+      color:#fff;
+      width:40px; height:40px;
+      border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:18px; cursor:pointer;
+      transition:all 0.2s;
+      padding:0;
+    }
+    .header-icon-btn:active { transform:scale(0.92); background:rgba(255,255,255,0.3); }
+    .header-icon-btn[aria-pressed="true"] { background:#FFD54F; color:#1B5E20; }
+
+    /* ── 카드 즐겨찾기 버튼 ── */
+    .fav-btn {
+      position:absolute; top:12px; right:12px;
+      background:transparent; border:none;
+      font-size:22px; cursor:pointer;
+      width:36px; height:36px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      transition:all 0.2s;
+      color:#bbb;
+    }
+    .fav-btn:active { transform:scale(0.85); }
+    .fav-btn.fav-on { color:#FFD54F; text-shadow:0 0 8px rgba(255,213,79,0.6); }
+    .gas-card { position:relative; }
+
+    /* ── 모달 (즐겨찾기 / 최근검색) ── */
+    .modal-backdrop {
+      position:fixed; inset:0;
+      background:rgba(0,0,0,0.6);
+      backdrop-filter:blur(4px);
+      display:flex; align-items:flex-end; justify-content:center;
+      z-index:9998;
+      opacity:0; pointer-events:none;
+      transition:opacity 0.25s;
+    }
+    .modal-backdrop.open { opacity:1; pointer-events:auto; }
+    .modal-sheet {
+      background:var(--card);
+      width:100%; max-width:520px;
+      border-radius:24px 24px 0 0;
+      padding:20px;
+      padding-bottom:max(20px, env(safe-area-inset-bottom));
+      max-height:80vh;
+      overflow-y:auto;
+      transform:translateY(100%);
+      transition:transform 0.3s cubic-bezier(.2,.8,.2,1);
+      box-shadow:0 -8px 40px rgba(0,0,0,0.3);
+    }
+    .modal-backdrop.open .modal-sheet { transform:translateY(0); }
+    .modal-handle {
+      width:40px; height:4px; border-radius:2px;
+      background:var(--border); margin:0 auto 16px;
+    }
+    .modal-title {
+      font-size:18px; font-weight:800; color:var(--text);
+      margin-bottom:14px; display:flex; align-items:center; gap:8px;
+    }
+    .modal-empty {
+      text-align:center; padding:40px 20px;
+      color:var(--text-muted); font-size:14px;
+    }
+    .modal-empty .ico { font-size:48px; margin-bottom:10px; opacity:0.5; }
+    .fav-item, .recent-item {
+      display:flex; align-items:center; gap:12px;
+      padding:14px; border-radius:14px;
+      background:var(--bg); margin-bottom:8px;
+      cursor:pointer; transition:transform 0.15s;
+    }
+    .fav-item:active, .recent-item:active { transform:scale(0.98); }
+    .fav-item-info, .recent-item-info { flex:1; min-width:0; }
+    .fav-item-name, .recent-item-label {
+      font-size:14px; font-weight:700; color:var(--text);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .fav-item-addr, .recent-item-meta {
+      font-size:11px; color:var(--text-muted); margin-top:2px;
+    }
+    .item-remove {
+      background:transparent; border:none;
+      color:var(--text-muted); font-size:18px;
+      cursor:pointer; padding:4px 8px;
+    }
+    .modal-clear-btn {
+      width:100%; padding:12px; margin-top:8px;
+      background:transparent; border:1.5px dashed var(--border);
+      color:var(--text-muted); font-size:13px; font-weight:600;
+      border-radius:12px; cursor:pointer;
+    }
 
     /* ── 위치 바 ── */
     .loc-bar { background:var(--card); border-bottom:1px solid var(--border); padding:10px 16px; display:flex; align-items:center; gap:8px; }
@@ -365,27 +500,50 @@
 
 <div class="header">
   <div class="header-top">
-    <div class="header-logo">⛽</div>
+    <div class="header-logo" aria-hidden="true">⛽</div>
     <div class="header-text">
       <h1>착한주유소</h1>
       <div class="tagline">내 주변 가장 저렴한 주유소를 찾아보세요</div>
     </div>
+    <div class="header-actions">
+      <button class="header-icon-btn" aria-label="즐겨찾기" title="즐겨찾기" onclick="openFavoritesModal()">⭐</button>
+      <button class="header-icon-btn" aria-label="최근 검색" title="최근 검색" onclick="openRecentModal()">🕐</button>
+      <button class="header-icon-btn" aria-label="테마 변경" title="테마 변경" onclick="cycleTheme()">🎨</button>
+    </div>
   </div>
 </div>
 
-<div class="loc-bar">
-  <span>📍</span>
-  <span class="loc-text" id="locText">위치 가져오는 중...</span>
-  <div class="loc-mode-toggle">
-    <button class="loc-mode-btn active" id="modeGps" onclick="setLocMode('gps')">GPS</button>
-    <button class="loc-mode-btn" id="modeSearch" onclick="setLocMode('search')">검색</button>
+<!-- 즐겨찾기 모달 -->
+<div class="modal-backdrop" id="favModal" onclick="if(event.target===this)closeModal('favModal')" role="dialog" aria-modal="true" aria-labelledby="favModalTitle">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="favModalTitle">⭐ 즐겨찾기</div>
+    <div id="favList"></div>
   </div>
-  <button class="refresh-btn" onclick="init()">새로고침</button>
 </div>
 
-<div class="search-bar" id="searchBar">
-  <input class="search-input" id="searchInput" type="text" placeholder="지역명 또는 주소 (예: 강남역, 수원시)" oninput="onSearchInput()" onkeydown="if(event.key==='Enter')doSearch()">
-  <button class="search-btn" onclick="doSearch()">검색</button>
+<!-- 최근 검색 모달 -->
+<div class="modal-backdrop" id="recentModal" onclick="if(event.target===this)closeModal('recentModal')" role="dialog" aria-modal="true" aria-labelledby="recentModalTitle">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="recentModalTitle">🕐 최근 검색</div>
+    <div id="recentList"></div>
+  </div>
+</div>
+
+<nav class="loc-bar" aria-label="위치 설정">
+  <span aria-hidden="true">📍</span>
+  <span class="loc-text" id="locText" aria-live="polite">위치 가져오는 중...</span>
+  <div class="loc-mode-toggle" role="radiogroup" aria-label="위치 모드">
+    <button class="loc-mode-btn active" id="modeGps" onclick="setLocMode('gps')" role="radio" aria-checked="true">GPS</button>
+    <button class="loc-mode-btn" id="modeSearch" onclick="setLocMode('search')" role="radio" aria-checked="false">검색</button>
+  </div>
+  <button class="refresh-btn" onclick="init()" aria-label="새로고침">새로고침</button>
+</nav>
+
+<div class="search-bar" id="searchBar" role="search">
+  <input class="search-input" id="searchInput" type="text" placeholder="지역명 또는 주소 (예: 강남역, 수원시)" oninput="onSearchInput()" onkeydown="if(event.key==='Enter')doSearch()" aria-label="지역 또는 주소 검색" autocomplete="off">
+  <button class="search-btn" onclick="doSearch()" aria-label="검색 실행">검색</button>
 </div>
 <div class="search-suggestions" id="suggestions"></div>
 
@@ -940,7 +1098,8 @@
 
     // 실패
     skel.style.display='none'; el.style.display='block';
-    el.innerHTML = `<div class="state-box"><div class="icon">⛽</div><h3>주유소를 찾을 수 없습니다</h3><p>반경을 넓히거나 인터넷 연결을 확인해 주세요.</p><button class="state-btn" onclick="fetchGas()">다시 시도</button></div>`;
+    const offlineHint = !navigator.onLine ? '<p style="color:#D32F2F;font-weight:600;margin-top:8px">📡 현재 오프라인 상태입니다</p>' : '';
+    el.innerHTML = `<div class="state-box"><div class="icon">⛽</div><h3>주유소를 찾을 수 없습니다</h3><p>반경을 넓히거나 다른 위치로 검색해보세요.</p>${offlineHint}<div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"><button class="state-btn" onclick="fetchGas()">🔄 다시 시도</button><button class="state-btn" onclick="setGasRadius({dataset:{gasRadius:'10000'}})" style="background:transparent;border:1.5px solid var(--border);color:var(--text-muted)">반경 10km</button></div></div>`;
   }
 
   /* ── 카드 렌더링 ── */
@@ -961,11 +1120,13 @@
 
     let html = '';
     gasData.forEach((g, i) => {
+      const favId = g.id || (g.name + '|' + (g.address||''));
       html += `
       <div class="gas-card ${g.isCheap?'cheap':'over-price'}" style="animation-delay:${i*.04}s">
+        <button class="fav-btn ${isFavorite(favId)?'fav-on':''}" data-fav-id="${escHtml(favId)}" onclick="toggleFavorite('${escHtml(favId)}','${escHtml(g.name)}','${escHtml(g.address||'')}','${escHtml(g.brand||'')}')" aria-label="즐겨찾기 토글">${isFavorite(favId)?'⭐':'☆'}</button>
         <div class="gas-card-body">
           <div class="gas-header">
-            <div class="gas-name">${escHtml(g.name)}</div>
+            <div class="gas-name" style="padding-right:36px">${escHtml(g.name)}</div>
             ${brandBadge(g.brand)}
           </div>
           <div class="price-row">
@@ -1078,11 +1239,14 @@
     document.getElementById('sortBar').style.display = 'block';
     el.style.display = 'block';
 
-    el.innerHTML = gasData.map((g, i) => `
+    el.innerHTML = gasData.map((g, i) => {
+      const favId = g.id || (g.name + '|' + (g.address||''));
+      return `
       <div class="gas-card cheap" style="animation-delay:${i*.04}s">
+        <button class="fav-btn ${isFavorite(favId)?'fav-on':''}" data-fav-id="${escHtml(favId)}" onclick="toggleFavorite('${escHtml(favId)}','${escHtml(g.name)}','${escHtml(g.address||'')}','${escHtml(g.brand||'')}')" aria-label="즐겨찾기 토글">${isFavorite(favId)?'⭐':'☆'}</button>
         <div class="gas-card-body">
           <div class="gas-header">
-            <div class="gas-name">${escHtml(g.name)}</div>
+            <div class="gas-name" style="padding-right:36px">${escHtml(g.name)}</div>
             <span class="gas-brand brand-etc"><span class="brand-dot" style="background:#4CAF50"></span>🔌 ${escHtml(g.brand)}</span>
           </div>
           <div class="price-row">
@@ -1101,7 +1265,8 @@
           ${g.phone?`<button class="action-btn" onclick="call('${g.phone}')"><span class="aicon">📞</span>전화</button>`:''}
           <button class="action-btn" onclick="shareStation('${escHtml(g.name)}',0,'${escHtml(g.address)}')"><span class="aicon">📤</span>공유</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     refreshMapIfVisible();
   }
 
@@ -1213,6 +1378,7 @@
     document.getElementById('locText').className = 'loc-text active';
     document.getElementById('suggestions').classList.remove('open');
     document.getElementById('searchInput').value = name;
+    addRecentSearch(name, newLat, newLng);
     fetchGas();
   }
 
@@ -1323,13 +1489,265 @@
     return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   }
 
-  /* ── 공유 ── */
+  /* ── 공유 (Web Share API + URL 포함) ── */
   async function shareStation(name, price, addr) {
-    const text = `⛽ ${name}\n💰 ${price.toLocaleString()}원/L\n📍 ${addr}\n\n착한주유소에서 찾았어요!`;
+    const url = 'https://krill0188.github.io/find-energy-station/';
+    const priceText = price ? `💰 ${price.toLocaleString()}원/L\n` : '';
+    const text = `⛽ ${name}\n${priceText}📍 ${addr}\n\n착한주유소에서 찾았어요!`;
     if(navigator.share) {
-      try { await navigator.share({title:'착한주유소 - '+name, text}); return; } catch(e){}
+      try {
+        await navigator.share({
+          title: '착한주유소 - ' + name,
+          text,
+          url
+        });
+        return;
+      } catch(e) { if(e.name === 'AbortError') return; }
     }
-    navigator.clipboard?.writeText(text).then(() => alert('📋 복사됨!'));
+    // 폴백: 클립보드 복사
+    if(navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(text + '\n' + url);
+        showToast('📋 클립보드에 복사됨!');
+        return;
+      } catch(e) {}
+    }
+    alert(text + '\n' + url);
+  }
+
+  /* ── 토스트 알림 ── */
+  function showToast(msg, duration = 2000) {
+    let toast = document.getElementById('appToast');
+    if(!toast) {
+      toast = document.createElement('div');
+      toast.id = 'appToast';
+      toast.style.cssText = 'position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(20px);background:rgba(27,94,32,0.95);color:#fff;padding:12px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:99999;opacity:0;transition:all 0.3s;box-shadow:0 4px 16px rgba(0,0,0,0.2);max-width:90vw;text-align:center;backdrop-filter:blur(8px);';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(-50%) translateY(0)';
+    });
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(20px)';
+    }, duration);
+  }
+
+  /* ── 즐겨찾기 (localStorage) ── */
+  const FAV_KEY = 'energy:favorites';
+  function getFavorites() {
+    try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function isFavorite(id) {
+    return getFavorites().some(f => f.id === id);
+  }
+  function toggleFavorite(id, name, address, brand) {
+    const favs = getFavorites();
+    const idx = favs.findIndex(f => f.id === id);
+    if(idx >= 0) {
+      favs.splice(idx, 1);
+      showToast('⭐ 즐겨찾기 해제');
+    } else {
+      favs.unshift({ id, name, address, brand, addedAt: Date.now() });
+      if(favs.length > 50) favs.pop();
+      showToast('⭐ 즐겨찾기 추가');
+    }
+    localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+    refreshFavoriteIcons();
+  }
+  function refreshFavoriteIcons() {
+    document.querySelectorAll('[data-fav-id]').forEach(btn => {
+      const id = btn.dataset.favId;
+      btn.textContent = isFavorite(id) ? '⭐' : '☆';
+      btn.classList.toggle('fav-on', isFavorite(id));
+    });
+  }
+
+  /* ── 최근 검색 이력 ── */
+  const RECENT_KEY = 'energy:recent';
+  function getRecentSearches() {
+    try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function addRecentSearch(label, lat, lng) {
+    if(!label || !lat || !lng) return;
+    const recent = getRecentSearches();
+    // 중복 제거
+    const filtered = recent.filter(r => r.label !== label);
+    filtered.unshift({ label, lat, lng, ts: Date.now() });
+    if(filtered.length > 10) filtered.length = 10;
+    localStorage.setItem(RECENT_KEY, JSON.stringify(filtered));
+  }
+  function clearRecentSearches() {
+    localStorage.removeItem(RECENT_KEY);
+    showToast('🗑️ 검색 이력 삭제됨');
+  }
+
+  /* ── 다크모드 토글 (수동 오버라이드) ── */
+  const THEME_KEY = 'energy:theme';
+  function getTheme() {
+    return localStorage.getItem(THEME_KEY) || 'auto';
+  }
+  function setTheme(theme) {
+    localStorage.setItem(THEME_KEY, theme);
+    applyTheme(theme);
+  }
+  function applyTheme(theme) {
+    if(theme === 'auto') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+    // 메타 테마 컬러도 갱신
+    const isDark = theme === 'dark' || (theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+      if(!m.media) m.content = isDark ? '#0E1A0E' : '#1B5E20';
+    });
+  }
+  function cycleTheme() {
+    const cur = getTheme();
+    const next = cur === 'auto' ? 'light' : cur === 'light' ? 'dark' : 'auto';
+    setTheme(next);
+    const labels = { auto: '자동', light: '라이트', dark: '다크' };
+    showToast(`🎨 ${labels[next]} 모드`);
+  }
+  // 초기 적용
+  applyTheme(getTheme());
+
+  /* ── URL 쿼리 파라미터 처리 (PWA shortcut 지원) ── */
+  (function applyUrlParams() {
+    const params = new URLSearchParams(location.search);
+    const fuelParam = params.get('fuel');
+    if(fuelParam) {
+      // EV는 별도 처리, 나머지는 fuelType 직접 변경
+      if(['B027','D047','K015','EV'].includes(fuelParam)) {
+        fuelType = fuelParam;
+        // DOM 준비 후 칩 활성화
+        document.addEventListener('DOMContentLoaded', () => {
+          document.querySelectorAll('.chip[data-fuel]').forEach(c => {
+            c.classList.toggle('active', c.dataset.fuel === fuelParam);
+          });
+        });
+      }
+    }
+  })();
+
+  /* ── 온라인/오프라인 상태 모니터링 ── */
+  function updateOnlineStatus() {
+    const isOnline = navigator.onLine;
+    let banner = document.getElementById('offlineBanner');
+    if(!isOnline) {
+      if(!banner) {
+        banner = document.createElement('div');
+        banner.id = 'offlineBanner';
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#D32F2F;color:#fff;padding:8px 16px;text-align:center;font-size:12px;font-weight:600;z-index:10000;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+        banner.innerHTML = '📡 오프라인 상태입니다. 캐시된 데이터로 동작 중...';
+        document.body.appendChild(banner);
+      }
+    } else if(banner) {
+      banner.style.background = '#2E7D32';
+      banner.innerHTML = '✅ 다시 온라인 상태입니다';
+      setTimeout(() => banner?.remove(), 2000);
+    }
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  if(!navigator.onLine) updateOnlineStatus();
+
+  /* ── 모달 열기/닫기 ── */
+  function openModal(id) {
+    document.getElementById(id)?.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(id) {
+    document.getElementById(id)?.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function openFavoritesModal() {
+    renderFavoritesList();
+    openModal('favModal');
+  }
+  function openRecentModal() {
+    renderRecentList();
+    openModal('recentModal');
+  }
+  // ESC 키로 모달 닫기
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape') {
+      ['favModal','recentModal'].forEach(id => closeModal(id));
+    }
+  });
+
+  function renderFavoritesList() {
+    const el = document.getElementById('favList');
+    const favs = getFavorites();
+    if(favs.length === 0) {
+      el.innerHTML = `<div class="modal-empty"><div class="ico">⭐</div>아직 즐겨찾기한 주유소가 없습니다<br><span style="font-size:11px;opacity:.7">카드의 별 아이콘을 눌러 추가해보세요</span></div>`;
+      return;
+    }
+    el.innerHTML = favs.map(f => `
+      <div class="fav-item">
+        <div style="font-size:24px">⛽</div>
+        <div class="fav-item-info" onclick="searchFavorite('${escHtml(f.name)}','${escHtml(f.address||'')}')">
+          <div class="fav-item-name">${escHtml(f.name)}</div>
+          ${f.address ? `<div class="fav-item-addr">${escHtml(f.address)}</div>` : ''}
+        </div>
+        <button class="item-remove" onclick="removeFavorite('${escHtml(f.id)}')" aria-label="즐겨찾기 제거">✕</button>
+      </div>
+    `).join('');
+  }
+  function removeFavorite(id) {
+    const favs = getFavorites().filter(f => f.id !== id);
+    localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+    renderFavoritesList();
+    refreshFavoriteIcons();
+    showToast('⭐ 제거됨');
+  }
+  function searchFavorite(name, addr) {
+    closeModal('favModal');
+    const q = addr || name;
+    window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`, '_blank');
+  }
+
+  function renderRecentList() {
+    const el = document.getElementById('recentList');
+    const recent = getRecentSearches();
+    if(recent.length === 0) {
+      el.innerHTML = `<div class="modal-empty"><div class="ico">🕐</div>최근 검색 기록이 없습니다</div>`;
+      return;
+    }
+    el.innerHTML = recent.map(r => {
+      const ago = timeAgo(r.ts);
+      return `
+        <div class="recent-item" onclick="useRecentSearch(${r.lat},${r.lng},'${escHtml(r.label)}')">
+          <div style="font-size:22px">📍</div>
+          <div class="recent-item-info">
+            <div class="recent-item-label">${escHtml(r.label)}</div>
+            <div class="recent-item-meta">${ago}</div>
+          </div>
+        </div>
+      `;
+    }).join('') + `<button class="modal-clear-btn" onclick="clearRecentSearches();renderRecentList();">🗑️ 전체 삭제</button>`;
+  }
+  function useRecentSearch(rLat, rLng, label) {
+    lat = rLat; lng = rLng;
+    document.getElementById('locText').textContent = label;
+    closeModal('recentModal');
+    fetchGas();
+  }
+  function timeAgo(ts) {
+    const diff = Date.now() - ts;
+    const m = Math.floor(diff / 60000);
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+    if(d > 0) return `${d}일 전`;
+    if(h > 0) return `${h}시간 전`;
+    if(m > 0) return `${m}분 전`;
+    return '방금 전';
   }
 
   /* ── 방문자 카운터 ── */
@@ -1452,14 +1870,19 @@
 
   window.addEventListener('load', renderAffiliates);
 
-  /* ── PWA 설치 프롬프트 ── */
+  /* ── 스마트 PWA 설치 프롬프트 (3번째 방문 후 노출) ── */
   let deferredPrompt = null;
+  const VISIT_KEY = 'energy:visits';
+  const visits = parseInt(localStorage.getItem(VISIT_KEY) || '0') + 1;
+  localStorage.setItem(VISIT_KEY, String(visits));
+  const SHOULD_PROMPT = visits >= 3 && !localStorage.getItem('installDismissed');
 
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    if(!localStorage.getItem('installDismissed')) {
-      document.getElementById('installBanner').style.display = 'flex';
+    if(SHOULD_PROMPT) {
+      const banner = document.getElementById('installBanner');
+      if(banner) banner.style.display = 'flex';
     }
   });
 
@@ -1468,6 +1891,7 @@
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(r => {
         document.getElementById('installBanner').style.display = 'none';
+        if(r.outcome === 'accepted') showToast('🎉 앱이 설치되었습니다!');
         deferredPrompt = null;
       });
     }
@@ -1478,22 +1902,46 @@
     localStorage.setItem('installDismissed', '1');
   }
 
-  // iOS Safari 안내
+  // iOS Safari 안내 (3번째 방문 후)
   window.addEventListener('load', () => {
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-    if(isIOS && !isStandalone && !localStorage.getItem('installDismissed')) {
+    if(isIOS && !isStandalone && SHOULD_PROMPT) {
       const banner = document.getElementById('installBanner');
       const btn = document.getElementById('installBtn');
-      btn.textContent = '방법 보기';
-      btn.onclick = () => { alert('Safari 하단 공유 버튼(□↑) → "홈 화면에 추가"를 눌러주세요'); };
-      banner.style.display = 'flex';
+      if(banner && btn) {
+        btn.textContent = '방법 보기';
+        btn.onclick = () => {
+          alert('📱 iPhone/iPad에 설치하기:\n\n1. Safari 하단 공유 버튼(□↑) 탭\n2. "홈 화면에 추가" 선택\n3. 우상단 "추가" 탭\n\n앱처럼 전체화면으로 실행됩니다!');
+        };
+        banner.style.display = 'flex';
+      }
     }
   });
 
-  /* ── 서비스 워커 등록 ── */
+  // 앱 설치 완료 이벤트 (Android)
+  window.addEventListener('appinstalled', () => {
+    showToast('🎉 착한주유소가 설치되었습니다!');
+    localStorage.setItem('installed', '1');
+  });
+
+  /* ── 서비스 워커 등록 + 업데이트 알림 ── */
   if('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    window.addEventListener('load', async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('sw.js');
+        // 업데이트 감지
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          if(!newSW) return;
+          newSW.addEventListener('statechange', () => {
+            if(newSW.state === 'installed' && navigator.serviceWorker.controller) {
+              showToast('🔄 새 버전이 준비되었습니다. 새로고침하면 적용됩니다', 4000);
+            }
+          });
+        });
+      } catch(e) { console.warn('SW 등록 실패:', e); }
+    });
   }
 
   window.onload = init;
