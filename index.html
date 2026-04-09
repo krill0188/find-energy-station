@@ -761,6 +761,37 @@
     return {x:Math.round(x), y:Math.round(y)};
   }
 
+  function katecToWgs84(kx, ky) {
+    const deg=Math.PI/180, rad=180/Math.PI;
+    const ab=6377397.155, fb=1/299.1528128, bb=ab*(1-fb), e2b=(ab*ab-bb*bb)/(ab*ab), ep2=(ab*ab-bb*bb)/(bb*bb);
+    const k0=0.9999, lng0=128*deg, lat0=38*deg, x0=400000, y0=600000;
+    const e4=e2b*e2b, e6=e4*e2b;
+    const e1=(1-Math.sqrt(1-e2b))/(1+Math.sqrt(1-e2b));
+    const mArc0=ab*((1-e2b/4-3*e4/64-5*e6/256)*lat0-(3*e2b/8+3*e4/32+45*e6/1024)*Math.sin(2*lat0)+(15*e4/256+45*e6/1024)*Math.sin(4*lat0)-(35*e6/3072)*Math.sin(6*lat0));
+    const M=(ky-y0)/k0+mArc0;
+    const mu=M/(ab*(1-e2b/4-3*e4/64-5*e6/256));
+    const phi1=mu+(3*e1/2-27*e1*e1*e1/32)*Math.sin(2*mu)+(21*e1*e1/16-55*e1*e1*e1*e1/32)*Math.sin(4*mu)+(151*e1*e1*e1/96)*Math.sin(6*mu)+(1097*e1*e1*e1*e1/512)*Math.sin(8*mu);
+    const sp=Math.sin(phi1), cp=Math.cos(phi1), tp=Math.tan(phi1);
+    const N1=ab/Math.sqrt(1-e2b*sp*sp), R1=ab*(1-e2b)/Math.pow(1-e2b*sp*sp,1.5);
+    const T1=tp*tp, C1=ep2*cp*cp, D=(kx-x0)/(N1*k0);
+    const bLat=phi1-(N1*tp/R1)*(D*D/2-(5+3*T1+10*C1-4*C1*C1-9*ep2)*D*D*D*D/24+(61+90*T1+298*C1+45*T1*T1-252*ep2-3*C1*C1)*D*D*D*D*D*D/720);
+    const bLng=lng0+(D-(1+2*T1+C1)*D*D*D/6+(5-2*C1+28*T1-3*C1*C1+8*ep2+24*T1*T1)*D*D*D*D*D/120)/cp;
+    // Bessel → WGS84 (역 Molodensky)
+    const Xb=ab/Math.sqrt(1-e2b*Math.sin(bLat)*Math.sin(bLat))*Math.cos(bLat)*Math.cos(bLng);
+    const Yb=ab/Math.sqrt(1-e2b*Math.sin(bLat)*Math.sin(bLat))*Math.cos(bLat)*Math.sin(bLng);
+    const Zb=ab*(1-e2b)/Math.sqrt(1-e2b*Math.sin(bLat)*Math.sin(bLat))*Math.sin(bLat);
+    const dx=-115.80, dy=474.99, dz=674.11;
+    const rx=1.16/3600*deg, ry=-2.31/3600*deg, rz=-1.63/3600*deg;
+    const sc=1+(6.43e-6);
+    const Xw=sc*(Xb-rz*Yb+ry*Zb)+dx, Yw=sc*(rz*Xb+Yb-rx*Zb)+dy, Zw=sc*(-ry*Xb+rx*Yb+Zb)+dz;
+    const aw2=6378137.0, fw2=1/298.257223563, bw2=aw2*(1-fw2), e2w=(aw2*aw2-bw2*bw2)/(aw2*aw2);
+    const wLng=Math.atan2(Yw,Xw);
+    const p=Math.sqrt(Xw*Xw+Yw*Yw);
+    let wLat=Math.atan2(Zw,p*(1-e2w));
+    for(let i=0;i<10;i++){const Nw=aw2/Math.sqrt(1-e2w*Math.sin(wLat)*Math.sin(wLat));wLat=Math.atan2(Zw+e2w*Nw*Math.sin(wLat),p);}
+    return {lat:wLat*rad, lng:wLng*rad};
+  }
+
   /* ── 역 지오코딩 ── */
   async function reverseGeocode(lat, lng) {
     try {
@@ -815,12 +846,19 @@
       const gasJson = await fetchWithProxy(apiUrl);
       const oils = gasJson?.RESULT?.OIL || [];
       if(oils.length > 0) {
-        gasData = oils.map(o => ({
-          id:o.UNI_ID, name:o.OS_NM, brand:getBrandName(o.POLL_DIV_CD),
-          price:o.PRICE, dist:Math.round(o.DISTANCE),
-          address:o.NEW_ADR||o.VAN_ADR||'', phone:o.TEL||'',
-          lat:null, lng:null, isCheap:o.PRICE<=threshold
-        }));
+        gasData = oils.map(o => {
+          let olat=null, olng=null;
+          if(o.GIS_X_COOR && o.GIS_Y_COOR) {
+            const wgs = katecToWgs84(parseFloat(o.GIS_X_COOR), parseFloat(o.GIS_Y_COOR));
+            olat = wgs.lat; olng = wgs.lng;
+          }
+          return {
+            id:o.UNI_ID, name:o.OS_NM, brand:getBrandName(o.POLL_DIV_CD),
+            price:o.PRICE, dist:Math.round(o.DISTANCE),
+            address:o.NEW_ADR||o.VAN_ADR||'', phone:o.TEL||'',
+            lat:olat, lng:olng, isCheap:o.PRICE<=threshold
+          };
+        });
         setSourceBadge('opinet');
         renderCards(el, skel, threshold);
         return;
@@ -874,10 +912,15 @@
             gasData = items.map(i => {
               const brand = detectBrand(i.title.replace(/<[^>]*>/g,''));
               const price = getEstimatedPrice(brand, fuelType) + Math.floor(Math.random()*80) - 40;
+              let nlat=null, nlng=null;
+              if(i.mapx && i.mapy) {
+                const wgs = katecToWgs84(parseInt(i.mapx), parseInt(i.mapy));
+                nlat = wgs.lat; nlng = wgs.lng;
+              }
               return {
                 id:i.mapx, name:i.title.replace(/<[^>]*>/g,''), brand,
                 price, dist:0, address:i.roadAddress||i.address||'',
-                phone:i.telephone||'', lat:null, lng:null, isCheap:price<=threshold
+                phone:i.telephone||'', lat:nlat, lng:nlng, isCheap:price<=threshold
               };
             }).sort((a,b) => a.price - b.price);
             setSourceBadge('naver');
@@ -982,11 +1025,18 @@
           const json = await res.json();
           const items = json.items || [];
           if(items.length > 0) {
-            gasData = items.map(i => ({
-              id:i.mapx, name:i.title.replace(/<[^>]*>/g,''), brand:detectEVBrand(i.title),
-              price:0, dist:0, address:i.roadAddress||i.address||'',
-              phone:i.telephone||'', lat:null, lng:null, isCheap:true
-            }));
+            gasData = items.map(i => {
+              let nlat=null, nlng=null;
+              if(i.mapx && i.mapy) {
+                const wgs = katecToWgs84(parseInt(i.mapx), parseInt(i.mapy));
+                nlat = wgs.lat; nlng = wgs.lng;
+              }
+              return {
+                id:i.mapx, name:i.title.replace(/<[^>]*>/g,''), brand:detectEVBrand(i.title),
+                price:0, dist:0, address:i.roadAddress||i.address||'',
+                phone:i.telephone||'', lat:nlat, lng:nlng, isCheap:true
+              };
+            });
             setSourceBadge('naver');
             renderEVCards(el, skel);
             return;
