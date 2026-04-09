@@ -650,13 +650,19 @@
         icon: { content: markerHtml, anchor: new naver.maps.Point(40, 14) }
       });
 
+      const eName = encodeURIComponent(g.address || g.name || '');
       const infoHtml = `
-        <div style="padding:12px;font-size:13px;max-width:230px;font-family:-apple-system,sans-serif;line-height:1.5">
+        <div style="padding:12px;font-size:13px;max-width:250px;font-family:-apple-system,sans-serif;line-height:1.5">
           <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#111">${(g.name||'').replace(/</g,'&lt;')}</div>
           ${g.brand ? `<div style="color:#666;margin-bottom:4px">${g.brand}</div>` : ''}
           ${g.price ? `<div style="color:${isCheap?'#10B981':'#6B7280'};font-weight:700;font-size:15px;margin:6px 0">💰 ${g.price.toLocaleString()}원/L</div>` : ''}
           ${g.dist ? `<div style="color:#888;font-size:12px">📍 ${g.dist < 1000 ? g.dist+'m' : (g.dist/1000).toFixed(1)+'km'}</div>` : ''}
           ${g.address ? `<div style="color:#888;font-size:12px;margin-top:4px">🏠 ${(g.address||'').replace(/</g,'&lt;')}</div>` : ''}
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <a href="https://map.kakao.com/link/search/${eName}" target="_blank" style="flex:1;text-align:center;padding:6px 0;border-radius:8px;background:#FEE500;color:#3C1E1E;font-size:11px;font-weight:700;text-decoration:none">카카오</a>
+            <a href="https://map.naver.com/v5/search/${eName}" target="_blank" style="flex:1;text-align:center;padding:6px 0;border-radius:8px;background:#03C75A;color:#fff;font-size:11px;font-weight:700;text-decoration:none">네이버</a>
+            <a href="https://tmap.life/search?query=${eName}" target="_blank" style="flex:1;text-align:center;padding:6px 0;border-radius:8px;background:#2B6CB0;color:#fff;font-size:11px;font-weight:700;text-decoration:none">티맵</a>
+          </div>
         </div>`;
       const infoWindow = new naver.maps.InfoWindow({
         content: infoHtml,
