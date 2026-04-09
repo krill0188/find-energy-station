@@ -650,7 +650,8 @@
         icon: { content: markerHtml, anchor: new naver.maps.Point(40, 14) }
       });
 
-      const eName = encodeURIComponent(g.address || g.name || '');
+      const cleanName = cleanStationName(g.name || '');
+      const eName = encodeURIComponent(cleanName || g.address || g.name || '');
       const infoHtml = `
         <div style="padding:12px;font-size:13px;max-width:250px;font-family:-apple-system,sans-serif;line-height:1.5">
           <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#111">${(g.name||'').replace(/</g,'&lt;')}</div>
@@ -1263,6 +1264,27 @@
   function fmtDist(m) { return m >= 1000 ? `${(m/1000).toFixed(1)}km` : `${m}m`; }
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function call(p) { window.location.href = 'tel:'+p; }
+
+  // 주유소 상호에서 브랜드/운영 접두사 제거 → 카카오/네이버 검색 정확도 향상
+  // 예: "HD현대오일뱅크㈜직영 양벌현대주유소" → "양벌현대주유소"
+  function cleanStationName(name) {
+    if(!name) return '';
+    let s = String(name);
+    // 브랜드 접두사 패턴 (공백 포함)
+    const prefixes = [
+      /^HD현대오일뱅크\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
+      /^현대오일뱅크\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
+      /^SK에너지\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
+      /^S-OIL\s*[㈜(주)]*\s*(직영|대리점)?\s*/i,
+      /^에쓰오일\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
+      /^GS칼텍스\s*[㈜(주)]*\s*(직영|대리점)?\s*/,
+      /^알뜰주유소\s*/,
+      /^농협주유소\s*/,
+      /^[㈜(주)]+\s*/,
+    ];
+    for(const re of prefixes) s = s.replace(re, '');
+    return s.trim();
+  }
 
   function showErr(t, m) {
     document.getElementById('skeletonArea').style.display = 'none';
